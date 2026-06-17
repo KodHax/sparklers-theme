@@ -1,7 +1,4 @@
-{% doc %}
-  Renders JSON-LD structured data for SEO (Organization, WebSite, BreadcrumbList, Product).
-  Included in theme.liquid layout for all pages.
-{% enddoc %}
+{%- comment -%}Renders JSON-LD structured data for SEO.{%- endcomment -%}
 
 {%- if request.page_type == 'index' -%}
   <script type="application/ld+json">

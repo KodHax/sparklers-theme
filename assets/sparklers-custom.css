@@ -65,19 +65,90 @@
   font-weight: 600;
 }
 
-/* Gold CTA buttons override for add-to-cart */
+/* Rosa CTA buttons for add-to-cart and checkout */
 .button--add-to-cart,
-.sparklers-gold-btn {
-  background-color: #E6C78C !important;
-  color: #2B2B2B !important;
-  border-color: #E6C78C !important;
+.sparklers-cta-btn {
+  background-color: #E8A0B4 !important;
+  color: #fff !important;
+  border-color: #E8A0B4 !important;
   transition: all 0.25s ease;
 }
 
 .button--add-to-cart:hover,
-.sparklers-gold-btn:hover {
-  background-color: #d4b577 !important;
-  border-color: #d4b577 !important;
+.sparklers-cta-btn:hover {
+  background-color: #D4899E !important;
+  border-color: #D4899E !important;
+}
+
+/* Product page — shipping & payment info */
+.product-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border, #e5e5e5);
+  border-bottom: 1px solid var(--color-border, #e5e5e5);
+  margin-block: 8px;
+}
+
+.product-info-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--color-foreground);
+}
+
+.product-info-bar__item svg {
+  width: 18px;
+  height: 18px;
+  color: #E6C78C;
+  flex-shrink: 0;
+}
+
+/* Product description accordion */
+.product-accordion {
+  border-top: 1px solid var(--color-border, #e5e5e5);
+}
+
+.product-accordion details {
+  border-bottom: 1px solid var(--color-border, #e5e5e5);
+}
+
+.product-accordion summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  cursor: pointer;
+  font-family: var(--font-heading--family);
+  font-weight: 600;
+  font-size: 0.95rem;
+  list-style: none;
+}
+
+.product-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.product-accordion summary::after {
+  content: '+';
+  font-size: 1.2rem;
+  font-weight: 300;
+  color: #E6C78C;
+  transition: transform 0.2s ease;
+}
+
+.product-accordion details[open] summary::after {
+  content: '−';
+}
+
+.product-accordion .accordion-content {
+  padding: 0 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-foreground);
+  opacity: 0.85;
 }
 
 /* Trust badges row */

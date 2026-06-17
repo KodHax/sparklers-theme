@@ -217,31 +217,180 @@
               },
               "block_order": []
             },
-            "text_aEtTtq": {
-              "type": "text",
-              "name": "Product description",
+            "accordion_details": {
+              "type": "accordion",
+              "name": "Detalhes do produto",
               "settings": {
-                "text": "{{ closest.product.description }}",
-                "width": "100%",
-                "max_width": "normal",
-                "alignment": "left",
-                "type_preset": "rte",
-                "font": "var(--font-primary--family)",
-                "font_size": "",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "wrap": "pretty",
-                "color": "",
-                "background": false,
-                "background_color": "#00000026",
-                "corner_radius": 0,
-                "padding-block-start": 0,
+                "icon_style": "plus",
+                "dividers": true,
+                "heading_preset": "h6",
+                "inherit_color_scheme": true,
+                "color_scheme": "",
+                "border": "none",
+                "border_width": 1,
+                "border_opacity": 100,
+                "border_radius": 0,
+                "padding-block-start": 8,
                 "padding-block-end": 0,
                 "padding-inline-start": 0,
                 "padding-inline-end": 0
               },
-              "blocks": {}
+              "blocks": {
+                "row_description": {
+                  "type": "_accordion-row",
+                  "name": "Descrição",
+                  "settings": {
+                    "heading": "Descrição",
+                    "open": true,
+                    "icon": "none"
+                  },
+                  "blocks": {
+                    "desc_text": {
+                      "type": "text",
+                      "settings": {
+                        "text": "{{ closest.product.description }}",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "left",
+                        "type_preset": "rte",
+                        "font": "var(--font-body--family)",
+                        "font_size": "",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "pretty",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["desc_text"]
+                },
+                "row_shipping": {
+                  "type": "_accordion-row",
+                  "name": "Envio",
+                  "settings": {
+                    "heading": "Envio e Entrega",
+                    "open": false,
+                    "icon": "truck"
+                  },
+                  "blocks": {
+                    "shipping_text": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p>Envio em 24h úteis · Entrega em 1-2 dias úteis para Portugal Continental · Envio grátis acima de 50€ · Ilhas: 3-5 dias úteis</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "left",
+                        "type_preset": "rte",
+                        "font": "var(--font-body--family)",
+                        "font_size": "",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "pretty",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["shipping_text"]
+                },
+                "row_payment": {
+                  "type": "_accordion-row",
+                  "name": "Pagamento",
+                  "settings": {
+                    "heading": "Métodos de Pagamento",
+                    "open": false,
+                    "icon": "lock"
+                  },
+                  "blocks": {
+                    "payment_text": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p>Multibanco · MB Way · Cartão de crédito/débito (Visa, Mastercard) · PayPal · Pagamento 100% seguro e encriptado</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "left",
+                        "type_preset": "rte",
+                        "font": "var(--font-body--family)",
+                        "font_size": "",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "pretty",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["payment_text"]
+                },
+                "row_returns": {
+                  "type": "_accordion-row",
+                  "name": "Devoluções",
+                  "settings": {
+                    "heading": "Devoluções e Trocas",
+                    "open": false,
+                    "icon": "return"
+                  },
+                  "blocks": {
+                    "returns_text": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p>14 dias para devoluções · Produtos selados e por abrir · Contacte-nos para iniciar o processo · Reembolso em 5-7 dias úteis</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "left",
+                        "type_preset": "rte",
+                        "font": "var(--font-body--family)",
+                        "font_size": "",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "pretty",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["returns_text"]
+                }
+              },
+              "block_order": [
+                "row_description",
+                "row_shipping",
+                "row_payment",
+                "row_returns"
+              ]
             }
           },
           "block_order": [
@@ -249,7 +398,7 @@
             "divider_VJhene",
             "variant_picker_R3rGDr",
             "buy_buttons_eYQEYi",
-            "text_aEtTtq"
+            "accordion_details"
           ]
         }
       },
