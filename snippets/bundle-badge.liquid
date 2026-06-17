@@ -1,0 +1,60 @@
+{% doc %}
+  Renders a bundle minimum quantity badge and provides min qty data attribute.
+
+  @param {object} product - The product object
+{% enddoc %}
+
+{%- liquid
+  assign min_qty = 1
+  assign title_lower = product.title | downcase
+  assign has_bundle = false
+
+  if title_lower contains 'uni.'
+    assign parts = title_lower | split: 'uni.'
+    assign before_uni = parts[0]
+    assign words = before_uni | split: ' '
+    assign last_word = words | last
+    assign extracted = last_word | plus: 0
+    if extracted > 1
+      assign min_qty = extracted
+      assign has_bundle = true
+    endif
+  endif
+
+  if has_bundle == false and title_lower contains 'uni'
+    assign parts = title_lower | split: 'uni'
+    assign before_uni = parts[0]
+    assign words = before_uni | split: ' '
+    assign last_word = words | last
+    assign extracted = last_word | plus: 0
+    if extracted > 1
+      assign min_qty = extracted
+      assign has_bundle = true
+    endif
+  endif
+
+  if has_bundle == false and title_lower contains 'pack'
+    assign parts = title_lower | split: 'pack'
+    for part in parts
+      assign trimmed = part | strip
+      assign words = trimmed | split: ' '
+      for word in words
+        assign num = word | plus: 0
+        if num > 1
+          assign min_qty = num
+          assign has_bundle = true
+          break
+        endif
+      endfor
+      if has_bundle
+        break
+      endif
+    endfor
+  endif
+-%}
+
+{%- if has_bundle -%}
+  <span class="bundle-badge" data-min-qty="{{ min_qty }}">
+    Pack de {{ min_qty }}
+  </span>
+{%- endif -%}

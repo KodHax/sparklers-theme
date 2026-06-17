@@ -1,0 +1,105 @@
+/* Sparklers Portugal — Custom Styles */
+
+/* Sale badge with discount percentage */
+.sale-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background-color: #FFF5F7;
+  color: #C25450;
+  font-family: var(--font-body--family);
+  font-size: var(--font-size--xs);
+  font-weight: 600;
+  border-radius: 100px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Bundle badge */
+.bundle-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background-color: #F3C6CF;
+  color: #2B2B2B;
+  font-family: var(--font-body--family);
+  font-size: var(--font-size--xs);
+  font-weight: 600;
+  border-radius: 100px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Bundle minimum quantity notice on product page */
+.bundle-min-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: #FFF5F7;
+  border-radius: 8px;
+  font-size: var(--font-size--sm);
+  color: #2B2B2B;
+  margin-block-start: 8px;
+}
+
+.bundle-min-notice svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: #E6C78C;
+}
+
+/* Compare at price (strikethrough) */
+.price--on-sale .price-item--regular {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.price--on-sale .price-item--sale {
+  color: #C25450;
+  font-weight: 600;
+}
+
+/* Gold CTA buttons override for add-to-cart */
+.button--add-to-cart,
+.sparklers-gold-btn {
+  background-color: #E6C78C !important;
+  color: #2B2B2B !important;
+  border-color: #E6C78C !important;
+  transition: all 0.25s ease;
+}
+
+.button--add-to-cart:hover,
+.sparklers-gold-btn:hover {
+  background-color: #d4b577 !important;
+  border-color: #d4b577 !important;
+}
+
+/* Trust badges row */
+.trust-badges {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+
+.trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size--xs);
+  color: var(--color-foreground);
+}
+
+.trust-badge svg {
+  width: 20px;
+  height: 20px;
+  color: #E6C78C;
+  flex-shrink: 0;
+}
