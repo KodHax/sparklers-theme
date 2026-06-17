@@ -224,10 +224,57 @@
         "padding-block-start": 0,
         "padding-block-end": 32
       }
+    },
+    "usps_collection": {
+      "type": "text-with-icons",
+      "settings": {
+        "title": "",
+        "columns": 4,
+        "icon_1": "truck",
+        "text_1": "Entrega 24/48h",
+        "icon_2": "shield",
+        "text_2": "Pagamento seguro",
+        "icon_3": "gift",
+        "text_3": "Envio grátis +50€",
+        "icon_4": "star",
+        "text_4": "Qualidade premium",
+        "icon_5": "none",
+        "text_5": "",
+        "icon_6": "none",
+        "text_6": "",
+        "icon_7": "none",
+        "text_7": "",
+        "section_width": "page-width",
+        "color_scheme": "scheme-4",
+        "padding-block-start": 32,
+        "padding-block-end": 32
+      }
+    },
+    "faq_collection": {
+      "type": "faq",
+      "settings": {
+        "title": "Perguntas Frequentes",
+        "question_1": "Qual o prazo de entrega?",
+        "answer_1": "Todas as encomendas são enviadas em 24/48 horas úteis para Portugal Continental.",
+        "question_2": "Posso devolver os produtos?",
+        "answer_2": "Sim, aceitamos devoluções até 14 dias após a receção, desde que os produtos estejam selados e por abrir.",
+        "question_3": "Os preços incluem IVA?",
+        "answer_3": "Sim, todos os preços apresentados na loja já incluem IVA à taxa legal em vigor.",
+        "question_4": "A partir de que valor o envio é gratuito?",
+        "answer_4": "O envio é gratuito para encomendas acima de 50€ em Portugal Continental.",
+        "question_5": "",
+        "answer_5": "",
+        "section_width": "page-width",
+        "color_scheme": "scheme-1",
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
     }
   },
   "order": [
     "section",
-    "main"
+    "main",
+    "usps_collection",
+    "faq_collection"
   ]
 }
