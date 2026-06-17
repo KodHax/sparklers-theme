@@ -1,6 +1,9 @@
 /* Sparklers Portugal — Custom Styles */
 
-/* Sale badge with discount percentage */
+/* ============================================
+   SALE & BUNDLE BADGES
+   ============================================ */
+
 .sale-badge {
   display: inline-flex;
   align-items: center;
@@ -17,7 +20,6 @@
   white-space: nowrap;
 }
 
-/* Bundle badge */
 .bundle-badge {
   display: inline-flex;
   align-items: center;
@@ -34,7 +36,6 @@
   white-space: nowrap;
 }
 
-/* Bundle minimum quantity notice on product page */
 .bundle-min-notice {
   display: flex;
   align-items: center;
@@ -54,7 +55,10 @@
   color: #E6C78C;
 }
 
-/* Compare at price (strikethrough) */
+/* ============================================
+   PRICING — sale emphasis
+   ============================================ */
+
 .price--on-sale .price-item--regular {
   text-decoration: line-through;
   color: #999;
@@ -65,7 +69,10 @@
   font-weight: 600;
 }
 
-/* Rosa CTA buttons for add-to-cart and checkout */
+/* ============================================
+   ROSA CTA BUTTONS — add-to-cart & checkout
+   ============================================ */
+
 .button--add-to-cart,
 .sparklers-cta-btn {
   background-color: #E8A0B4 !important;
@@ -80,78 +87,154 @@
   border-color: #D4899E !important;
 }
 
-/* Product page — shipping & payment info */
-.product-info-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 16px 0;
-  border-top: 1px solid var(--color-border, #e5e5e5);
-  border-bottom: 1px solid var(--color-border, #e5e5e5);
-  margin-block: 8px;
+/* ============================================
+   STICKY ADD-TO-CART BAR
+   ============================================ */
+
+.sticky-atc-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: #fff;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  padding: 12px 0;
 }
 
-.product-info-bar__item {
+.sticky-atc-bar--visible {
+  transform: translateY(0);
+}
+
+.sticky-atc-bar__inner {
+  max-width: var(--full-page-grid-central-column-width, 1200px);
+  margin: 0 auto;
+  padding: 0 var(--page-margin, 20px);
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: var(--color-foreground);
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.product-info-bar__item svg {
-  width: 18px;
-  height: 18px;
-  color: #E6C78C;
+.sticky-atc-bar__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sticky-atc-bar__title {
+  font-family: var(--font-heading--family, serif);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sticky-atc-bar__price {
+  font-size: 0.85rem;
+  color: var(--color-foreground, #2B2B2B);
+}
+
+.sticky-atc-bar__button {
+  background-color: #E8A0B4;
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-family: var(--font-body--family, sans-serif);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
   flex-shrink: 0;
 }
 
-/* Product description accordion */
-.product-accordion {
-  border-top: 1px solid var(--color-border, #e5e5e5);
+.sticky-atc-bar__button:hover {
+  background-color: #D4899E;
 }
 
-.product-accordion details {
-  border-bottom: 1px solid var(--color-border, #e5e5e5);
+@media (max-width: 749px) {
+  .sticky-atc-bar__title {
+    max-width: 160px;
+  }
+  .sticky-atc-bar__button {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+  }
 }
 
-.product-accordion summary {
+/* ============================================
+   FREE SHIPPING PROGRESS BAR
+   ============================================ */
+
+.shipping-progress {
+  margin-block-start: 12px;
+}
+
+.shipping-progress__bar {
+  width: 100%;
+  height: 6px;
+  background-color: #f0f0f0;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.shipping-progress__fill {
+  height: 100%;
+  background-color: #E8A0B4;
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+
+.shipping-progress__text {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
-  cursor: pointer;
-  font-family: var(--font-heading--family);
-  font-weight: 600;
-  font-size: 0.95rem;
-  list-style: none;
+  gap: 6px;
+  margin-block-start: 6px;
+  font-size: 0.8rem;
+  color: var(--color-foreground, #2B2B2B);
+  opacity: 0.8;
 }
 
-.product-accordion summary::-webkit-details-marker {
-  display: none;
-}
-
-.product-accordion summary::after {
-  content: '+';
-  font-size: 1.2rem;
-  font-weight: 300;
+.shipping-progress__text svg {
+  flex-shrink: 0;
   color: #E6C78C;
-  transition: transform 0.2s ease;
 }
 
-.product-accordion details[open] summary::after {
-  content: '−';
+/* ============================================
+   URGENCY MESSAGE (envio hoje)
+   ============================================ */
+
+.urgency-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-block-start: 8px;
+  padding: 8px 12px;
+  background-color: #FFF5F7;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #2B2B2B;
 }
 
-.product-accordion .accordion-content {
-  padding: 0 0 16px;
-  font-size: 0.9rem;
-  line-height: 1.7;
-  color: var(--color-foreground);
-  opacity: 0.85;
+.urgency-message svg {
+  flex-shrink: 0;
+  color: #E6C78C;
 }
 
-/* Trust badges row */
+.urgency-message strong {
+  color: #C25450;
+}
+
+/* ============================================
+   TRUST BADGES ROW
+   ============================================ */
+
 .trust-badges {
   display: flex;
   justify-content: center;

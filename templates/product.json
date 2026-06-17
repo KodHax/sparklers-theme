@@ -18,7 +18,7 @@
             "media_presentation": "grid",
             "media_columns": "two",
             "image_gap": 4,
-            "large_first_image": false,
+            "large_first_image": true,
             "icons_style": "none",
             "slideshow_controls_style": "counter",
             "slideshow_mobile_controls_style": "dots",
@@ -49,7 +49,7 @@
             "custom_width_mobile": 100,
             "height": "fit",
             "details_position": "flex-start",
-            "gap": 28,
+            "gap": 20,
             "sticky_details_desktop": true,
             "inherit_color_scheme": true,
             "color_scheme": "scheme-1",
@@ -66,7 +66,7 @@
             "padding-inline-end": 0
           },
           "blocks": {
-            "group_icgrde": {
+            "header_group": {
               "type": "group",
               "name": "Header",
               "settings": {
@@ -78,7 +78,7 @@
                 "align_baseline": false,
                 "horizontal_alignment_flex_direction_column": "flex-start",
                 "vertical_alignment_flex_direction_column": "center",
-                "gap": 12,
+                "gap": 8,
                 "width": "fill",
                 "custom_width": 100,
                 "width_mobile": "fill",
@@ -104,7 +104,7 @@
                 "padding-inline-end": 0
               },
               "blocks": {
-                "text_xrnftG": {
+                "product_title": {
                   "type": "text",
                   "name": "Product title",
                   "settings": {
@@ -130,22 +130,32 @@
                   },
                   "blocks": {}
                 },
-                "price_tVjtKg": {
+                "product_price": {
                   "type": "price",
                   "settings": {
                     "show_sale_price_first": true,
                     "show_installments": false,
-                    "show_tax_info": false,
-                    "type_preset": "paragraph",
+                    "show_tax_info": true,
+                    "type_preset": "h5",
                     "width": "100%",
                     "alignment": "left",
                     "font": "var(--font-body--family)",
-                    "font_size": "1rem",
+                    "font_size": "1.15rem",
                     "line_height": "normal",
                     "letter_spacing": "normal",
                     "case": "none",
                     "color": "var(--color-foreground)",
-                    "padding-block-start": 4,
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {}
+                },
+                "review_stars": {
+                  "type": "review",
+                  "settings": {
+                    "padding-block-start": 0,
                     "padding-block-end": 0,
                     "padding-inline-start": 0,
                     "padding-inline-end": 0
@@ -154,27 +164,27 @@
                 }
               },
               "block_order": [
-                "text_xrnftG",
-                "price_tVjtKg"
+                "product_title",
+                "product_price",
+                "review_stars"
               ]
             },
-            "divider_VJhene": {
+            "divider_1": {
               "type": "_divider",
-              "name": "t:names.divider",
               "settings": {
                 "thickness": 1,
                 "corner_radius": "square",
                 "width_percent": 100,
-                "padding-block-start": 0,
-                "padding-block-end": 0
+                "padding-block-start": 4,
+                "padding-block-end": 4
               },
               "blocks": {}
             },
-            "variant_picker_R3rGDr": {
+            "variant_picker": {
               "type": "variant-picker",
               "settings": {
                 "variant_style": "buttons",
-                "show_swatches": false,
+                "show_swatches": true,
                 "alignment": "left",
                 "padding-block-start": 0,
                 "padding-block-end": 0,
@@ -183,12 +193,22 @@
               },
               "blocks": {}
             },
-            "buy_buttons_eYQEYi": {
+            "inventory_status": {
+              "type": "product-inventory",
+              "settings": {
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "buy_buttons": {
               "type": "buy-buttons",
               "settings": {
                 "stacking": true,
                 "show_pickup_availability": false,
-                "padding-block-start": 0,
+                "padding-block-start": 4,
                 "padding-block-end": 0,
                 "padding-inline-start": 0,
                 "padding-inline-end": 0
@@ -217,9 +237,287 @@
               },
               "block_order": []
             },
+            "trust_icons_group": {
+              "type": "group",
+              "name": "Trust signals",
+              "settings": {
+                "open_in_new_tab": false,
+                "content_direction": "row",
+                "vertical_on_mobile": false,
+                "horizontal_alignment": "space-between",
+                "vertical_alignment": "center",
+                "align_baseline": false,
+                "horizontal_alignment_flex_direction_column": "center",
+                "vertical_alignment_flex_direction_column": "center",
+                "gap": 4,
+                "width": "fill",
+                "custom_width": 100,
+                "width_mobile": "fill",
+                "custom_width_mobile": 100,
+                "height": "fit",
+                "custom_height": 100,
+                "inherit_color_scheme": true,
+                "color_scheme": "",
+                "background_media": "none",
+                "video_position": "cover",
+                "background_image_position": "cover",
+                "border": "outline",
+                "border_width": 1,
+                "border_opacity": 30,
+                "border_radius": 8,
+                "toggle_overlay": false,
+                "overlay_color": "#00000026",
+                "overlay_style": "solid",
+                "gradient_direction": "to top",
+                "padding-block-start": 12,
+                "padding-block-end": 12,
+                "padding-inline-start": 16,
+                "padding-inline-end": 16
+              },
+              "blocks": {
+                "trust_shipping": {
+                  "type": "group",
+                  "name": "Envio",
+                  "settings": {
+                    "open_in_new_tab": false,
+                    "content_direction": "column",
+                    "vertical_on_mobile": true,
+                    "horizontal_alignment": "center",
+                    "vertical_alignment": "center",
+                    "align_baseline": false,
+                    "horizontal_alignment_flex_direction_column": "center",
+                    "vertical_alignment_flex_direction_column": "center",
+                    "gap": 4,
+                    "width": "fill",
+                    "custom_width": 33,
+                    "width_mobile": "fill",
+                    "custom_width_mobile": 33,
+                    "height": "fit",
+                    "custom_height": 100,
+                    "inherit_color_scheme": true,
+                    "color_scheme": "",
+                    "background_media": "none",
+                    "video_position": "cover",
+                    "background_image_position": "cover",
+                    "border": "none",
+                    "border_width": 1,
+                    "border_opacity": 100,
+                    "border_radius": 0,
+                    "toggle_overlay": false,
+                    "overlay_color": "#00000026",
+                    "overlay_style": "solid",
+                    "gradient_direction": "to top",
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {
+                    "icon_truck": {
+                      "type": "icon",
+                      "settings": {
+                        "icon": "truck",
+                        "width": 22
+                      },
+                      "blocks": {}
+                    },
+                    "text_truck": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p>Envio 24h</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "center",
+                        "type_preset": "paragraph",
+                        "font": "var(--font-body--family)",
+                        "font_size": "0.75rem",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "nowrap",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["icon_truck", "text_truck"]
+                },
+                "trust_secure": {
+                  "type": "group",
+                  "name": "Seguro",
+                  "settings": {
+                    "open_in_new_tab": false,
+                    "content_direction": "column",
+                    "vertical_on_mobile": true,
+                    "horizontal_alignment": "center",
+                    "vertical_alignment": "center",
+                    "align_baseline": false,
+                    "horizontal_alignment_flex_direction_column": "center",
+                    "vertical_alignment_flex_direction_column": "center",
+                    "gap": 4,
+                    "width": "fill",
+                    "custom_width": 33,
+                    "width_mobile": "fill",
+                    "custom_width_mobile": 33,
+                    "height": "fit",
+                    "custom_height": 100,
+                    "inherit_color_scheme": true,
+                    "color_scheme": "",
+                    "background_media": "none",
+                    "video_position": "cover",
+                    "background_image_position": "cover",
+                    "border": "none",
+                    "border_width": 1,
+                    "border_opacity": 100,
+                    "border_radius": 0,
+                    "toggle_overlay": false,
+                    "overlay_color": "#00000026",
+                    "overlay_style": "solid",
+                    "gradient_direction": "to top",
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {
+                    "icon_lock": {
+                      "type": "icon",
+                      "settings": {
+                        "icon": "lock",
+                        "width": 22
+                      },
+                      "blocks": {}
+                    },
+                    "text_lock": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p>Pagamento seguro</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "center",
+                        "type_preset": "paragraph",
+                        "font": "var(--font-body--family)",
+                        "font_size": "0.75rem",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "nowrap",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["icon_lock", "text_lock"]
+                },
+                "trust_returns": {
+                  "type": "group",
+                  "name": "Devoluções",
+                  "settings": {
+                    "open_in_new_tab": false,
+                    "content_direction": "column",
+                    "vertical_on_mobile": true,
+                    "horizontal_alignment": "center",
+                    "vertical_alignment": "center",
+                    "align_baseline": false,
+                    "horizontal_alignment_flex_direction_column": "center",
+                    "vertical_alignment_flex_direction_column": "center",
+                    "gap": 4,
+                    "width": "fill",
+                    "custom_width": 33,
+                    "width_mobile": "fill",
+                    "custom_width_mobile": 33,
+                    "height": "fit",
+                    "custom_height": 100,
+                    "inherit_color_scheme": true,
+                    "color_scheme": "",
+                    "background_media": "none",
+                    "video_position": "cover",
+                    "background_image_position": "cover",
+                    "border": "none",
+                    "border_width": 1,
+                    "border_opacity": 100,
+                    "border_radius": 0,
+                    "toggle_overlay": false,
+                    "overlay_color": "#00000026",
+                    "overlay_style": "solid",
+                    "gradient_direction": "to top",
+                    "padding-block-start": 0,
+                    "padding-block-end": 0,
+                    "padding-inline-start": 0,
+                    "padding-inline-end": 0
+                  },
+                  "blocks": {
+                    "icon_return": {
+                      "type": "icon",
+                      "settings": {
+                        "icon": "return",
+                        "width": 22
+                      },
+                      "blocks": {}
+                    },
+                    "text_return": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p>Devoluções 14 dias</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "center",
+                        "type_preset": "paragraph",
+                        "font": "var(--font-body--family)",
+                        "font_size": "0.75rem",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "nowrap",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["icon_return", "text_return"]
+                }
+              },
+              "block_order": [
+                "trust_shipping",
+                "trust_secure",
+                "trust_returns"
+              ]
+            },
+            "divider_2": {
+              "type": "_divider",
+              "settings": {
+                "thickness": 1,
+                "corner_radius": "square",
+                "width_percent": 100,
+                "padding-block-start": 4,
+                "padding-block-end": 4
+              },
+              "blocks": {}
+            },
             "accordion_details": {
               "type": "accordion",
-              "name": "Detalhes do produto",
+              "name": "Informações do produto",
               "settings": {
                 "icon_style": "plus",
                 "dividers": true,
@@ -230,7 +528,7 @@
                 "border_width": 1,
                 "border_opacity": 100,
                 "border_radius": 0,
-                "padding-block-start": 8,
+                "padding-block-start": 0,
                 "padding-block-end": 0,
                 "padding-inline-start": 0,
                 "padding-inline-end": 0
@@ -240,7 +538,7 @@
                   "type": "_accordion-row",
                   "name": "Descrição",
                   "settings": {
-                    "heading": "Descrição",
+                    "heading": "Descrição do Produto",
                     "open": true,
                     "icon": "none"
                   },
@@ -273,6 +571,43 @@
                   },
                   "block_order": ["desc_text"]
                 },
+                "row_how_to_use": {
+                  "type": "_accordion-row",
+                  "name": "Como Usar",
+                  "settings": {
+                    "heading": "Como Usar",
+                    "open": false,
+                    "icon": "fire"
+                  },
+                  "blocks": {
+                    "how_to_text": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p><strong>1.</strong> Retire o sparkler da embalagem com cuidado<br><strong>2.</strong> Segure pela ponta sem revestimento (parte inferior)<br><strong>3.</strong> Acenda a ponta revestida com um isqueiro<br><strong>4.</strong> Mantenha distância de segurança e aproveite o momento<br><strong>5.</strong> Após apagar, coloque num recipiente com água</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "left",
+                        "type_preset": "rte",
+                        "font": "var(--font-body--family)",
+                        "font_size": "",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "pretty",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["how_to_text"]
+                },
                 "row_shipping": {
                   "type": "_accordion-row",
                   "name": "Envio",
@@ -285,7 +620,7 @@
                     "shipping_text": {
                       "type": "text",
                       "settings": {
-                        "text": "<p>Envio em 24h úteis · Entrega em 1-2 dias úteis para Portugal Continental · Envio grátis acima de 50€ · Ilhas: 3-5 dias úteis</p>",
+                        "text": "<p><strong>Portugal Continental:</strong> Envio em 24h úteis · Entrega em 1-2 dias úteis<br><strong>Ilhas (Açores e Madeira):</strong> 3-5 dias úteis<br><strong>Portes grátis:</strong> Em encomendas acima de 50€<br><strong>Tracking:</strong> Código de rastreio enviado por email</p>",
                         "width": "100%",
                         "max_width": "normal",
                         "alignment": "left",
@@ -322,7 +657,7 @@
                     "payment_text": {
                       "type": "text",
                       "settings": {
-                        "text": "<p>Multibanco · MB Way · Cartão de crédito/débito (Visa, Mastercard) · PayPal · Pagamento 100% seguro e encriptado</p>",
+                        "text": "<p><strong>Multibanco</strong> · Referência gerada automaticamente<br><strong>MB Way</strong> · Pagamento instantâneo<br><strong>Cartão</strong> · Visa, Mastercard, American Express<br><strong>PayPal</strong> · Checkout rápido e seguro<br><br>Todos os pagamentos são processados com encriptação SSL de 256 bits.</p>",
                         "width": "100%",
                         "max_width": "normal",
                         "alignment": "left",
@@ -351,7 +686,7 @@
                   "type": "_accordion-row",
                   "name": "Devoluções",
                   "settings": {
-                    "heading": "Devoluções e Trocas",
+                    "heading": "Devoluções e Garantia",
                     "open": false,
                     "icon": "return"
                   },
@@ -359,7 +694,7 @@
                     "returns_text": {
                       "type": "text",
                       "settings": {
-                        "text": "<p>14 dias para devoluções · Produtos selados e por abrir · Contacte-nos para iniciar o processo · Reembolso em 5-7 dias úteis</p>",
+                        "text": "<p><strong>14 dias</strong> para devoluções sem questões<br><strong>Condição:</strong> Produtos selados e embalagem original<br><strong>Processo:</strong> Contacte-nos por email ou WhatsApp<br><strong>Reembolso:</strong> Processado em 5-7 dias úteis após receção<br><strong>Garantia:</strong> Todos os produtos certificados CE</p>",
                         "width": "100%",
                         "max_width": "normal",
                         "alignment": "left",
@@ -383,21 +718,63 @@
                     }
                   },
                   "block_order": ["returns_text"]
+                },
+                "row_faq": {
+                  "type": "_accordion-row",
+                  "name": "Perguntas Frequentes",
+                  "settings": {
+                    "heading": "Perguntas Frequentes",
+                    "open": false,
+                    "icon": "chat_bubble"
+                  },
+                  "blocks": {
+                    "faq_text": {
+                      "type": "text",
+                      "settings": {
+                        "text": "<p><strong>São seguros para uso interior?</strong><br>Sim, os nossos sparklers são de baixo fumo e certificados para uso interior e exterior.<br><br><strong>Quanto tempo duram acesos?</strong><br>Depende do tamanho: sparklers de 45cm duram ~35s, de 70cm ~60s e de 100cm ~90s.<br><br><strong>Posso usar em bolos?</strong><br>Apenas os sparklers indicados como \"para bolos\" são adequados para uso alimentar.<br><br><strong>Qual a quantidade ideal para casamentos?</strong><br>Recomendamos 1 sparkler por convidado. Para saída da igreja, considere 2 por pessoa.</p>",
+                        "width": "100%",
+                        "max_width": "normal",
+                        "alignment": "left",
+                        "type_preset": "rte",
+                        "font": "var(--font-body--family)",
+                        "font_size": "",
+                        "line_height": "normal",
+                        "letter_spacing": "normal",
+                        "case": "none",
+                        "wrap": "pretty",
+                        "color": "",
+                        "background": false,
+                        "background_color": "#00000026",
+                        "corner_radius": 0,
+                        "padding-block-start": 0,
+                        "padding-block-end": 0,
+                        "padding-inline-start": 0,
+                        "padding-inline-end": 0
+                      },
+                      "blocks": {}
+                    }
+                  },
+                  "block_order": ["faq_text"]
                 }
               },
               "block_order": [
                 "row_description",
+                "row_how_to_use",
                 "row_shipping",
                 "row_payment",
-                "row_returns"
+                "row_returns",
+                "row_faq"
               ]
             }
           },
           "block_order": [
-            "group_icgrde",
-            "divider_VJhene",
-            "variant_picker_R3rGDr",
-            "buy_buttons_eYQEYi",
+            "header_group",
+            "divider_1",
+            "variant_picker",
+            "inventory_status",
+            "buy_buttons",
+            "trust_icons_group",
+            "divider_2",
             "accordion_details"
           ]
         }
@@ -413,14 +790,106 @@
         "padding-block-end": 0
       }
     },
-    "product_recommendations_qggXJq": {
+    "shipping_bar": {
+      "type": "text-with-icons",
+      "blocks": {
+        "bar_1": {
+          "type": "item",
+          "settings": {
+            "icon": "truck",
+            "heading": "Envio em 24h",
+            "description": "Encomenda hoje, receba amanhã"
+          }
+        },
+        "bar_2": {
+          "type": "item",
+          "settings": {
+            "icon": "shield",
+            "heading": "Certificação CE",
+            "description": "Produtos seguros e certificados"
+          }
+        },
+        "bar_3": {
+          "type": "item",
+          "settings": {
+            "icon": "gift",
+            "heading": "Portes Grátis +50€",
+            "description": "Portugal Continental"
+          }
+        },
+        "bar_4": {
+          "type": "item",
+          "settings": {
+            "icon": "heart",
+            "heading": "+500 Eventos",
+            "description": "Casamentos e celebrações"
+          }
+        }
+      },
+      "block_order": ["bar_1", "bar_2", "bar_3", "bar_4"],
+      "settings": {
+        "section_width": "page-width",
+        "color_scheme": "scheme-4",
+        "padding-block-start": 28,
+        "padding-block-end": 28
+      }
+    },
+    "product_faq_section": {
+      "type": "faq",
+      "blocks": {
+        "pf_1": {
+          "type": "question",
+          "settings": {
+            "question": "Os sparklers são seguros para casamentos?",
+            "answer": "<p>Sim! Todos os nossos sparklers são certificados CE e cumprem as normas europeias de segurança. São de baixo fumo e adequados para uso interior e exterior, desde que sejam respeitadas as instruções de uso.</p>"
+          }
+        },
+        "pf_2": {
+          "type": "question",
+          "settings": {
+            "question": "Quantos sparklers preciso para o meu casamento?",
+            "answer": "<p>Recomendamos 1 sparkler por convidado para a saída da igreja ou do espaço. Para um efeito mais espetacular (como túnel de sparklers), considere 2 por pessoa. Para 100 convidados, sugerimos entre 100-200 unidades.</p>"
+          }
+        },
+        "pf_3": {
+          "type": "question",
+          "settings": {
+            "question": "Qual o tamanho ideal de sparkler?",
+            "answer": "<p>Para casamentos, recomendamos sparklers de 70cm (duram ~60 segundos) ou 100cm (duram ~90 segundos) — proporcionam mais tempo para fotos e vídeos. Os de 45cm (~35 segundos) são ideais para bolos e mesas.</p>"
+          }
+        },
+        "pf_4": {
+          "type": "question",
+          "settings": {
+            "question": "Como funciona o envio?",
+            "answer": "<p>Todas as encomendas são processadas e enviadas em 24 horas úteis. A entrega demora 1-2 dias úteis para Portugal Continental. Receberá um email com o código de tracking assim que o envio for expedido. Envio grátis em encomendas acima de 50€.</p>"
+          }
+        },
+        "pf_5": {
+          "type": "question",
+          "settings": {
+            "question": "Posso devolver se não usar todos?",
+            "answer": "<p>Sim, tem 14 dias para devolver produtos não utilizados, desde que estejam selados na embalagem original. Contacte-nos por email ou WhatsApp para iniciar o processo. O reembolso é processado em 5-7 dias úteis.</p>"
+          }
+        }
+      },
+      "block_order": ["pf_1", "pf_2", "pf_3", "pf_4", "pf_5"],
+      "settings": {
+        "heading": "Perguntas Frequentes sobre este Produto",
+        "section_width": "page-width",
+        "color_scheme": "scheme-1",
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
+    },
+    "product_recommendations_section": {
       "type": "product-recommendations",
       "blocks": {
-        "text_cbcgyb": {
+        "rec_header": {
           "type": "text",
           "name": "t:names.header",
           "settings": {
-            "text": "<h3>Também pode gostar</h3>",
+            "text": "<h3>Completa o teu evento</h3>",
             "width": "fit-content",
             "max_width": "normal",
             "alignment": "left",
@@ -460,7 +929,7 @@
             "padding-inline-end": 0
           },
           "blocks": {
-            "product_card_gallery_DNizbJ": {
+            "rec_gallery": {
               "type": "_product-card-gallery",
               "name": "t:names.product_card_media",
               "settings": {
@@ -476,7 +945,7 @@
               },
               "blocks": {}
             },
-            "product_title_M7MJkb": {
+            "rec_title": {
               "type": "product-title",
               "name": "t:names.product_title",
               "settings": {
@@ -501,7 +970,7 @@
               },
               "blocks": {}
             },
-            "price_gLWgA6": {
+            "rec_price": {
               "type": "price",
               "settings": {
                 "show_sale_price_first": true,
@@ -525,21 +994,21 @@
             }
           },
           "block_order": [
-            "product_card_gallery_DNizbJ",
-            "product_title_M7MJkb",
-            "price_gLWgA6"
+            "rec_gallery",
+            "rec_title",
+            "rec_price"
           ]
         }
       },
       "block_order": [
-        "text_cbcgyb"
+        "rec_header"
       ],
       "name": "t:names.product_recommendations",
       "settings": {
         "product": "{{ closest.product }}",
         "recommendation_type": "related",
         "layout_type": "grid",
-        "carousel_on_mobile": false,
+        "carousel_on_mobile": true,
         "max_products": 4,
         "columns": 4,
         "mobile_columns": "2",
@@ -557,6 +1026,8 @@
   },
   "order": [
     "main",
-    "product_recommendations_qggXJq"
+    "shipping_bar",
+    "product_faq_section",
+    "product_recommendations_section"
   ]
 }
