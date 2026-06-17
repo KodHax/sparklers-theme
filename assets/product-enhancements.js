@@ -1,7 +1,6 @@
 /**
  * Product page conversion enhancements for Sparklers Portugal.
  * - Sticky add-to-cart bar on scroll
- * - Free shipping progress bar
  * - "Encomenda até Xh, envio hoje" urgency
  */
 
@@ -15,7 +14,6 @@
   }
 
   createStickyBar();
-  createShippingProgress();
   createUrgencyMessage();
 })();
 
@@ -75,56 +73,6 @@ function createStickyBar() {
   if (addToCartBtn) observer.observe(addToCartBtn);
 }
 
-function createShippingProgress() {
-  const FREE_SHIPPING_THRESHOLD = 50;
-
-  const form = document.querySelector('form[action*="/cart/add"]');
-  if (!form) return;
-
-  const buyButtonsWrapper = form.closest('[class*="buy-button"]') ||
-                            form.closest('.buy-buttons') ||
-                            form.parentElement;
-  if (!buyButtonsWrapper) return;
-
-  const progressEl = document.createElement('div');
-  progressEl.className = 'shipping-progress';
-  progressEl.innerHTML = `
-    <div class="shipping-progress__bar">
-      <div class="shipping-progress__fill" style="width: 0%"></div>
-    </div>
-    <p class="shipping-progress__text">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-      <span></span>
-    </p>
-  `;
-
-  buyButtonsWrapper.after(progressEl);
-
-  function updateProgress() {
-    fetch('/cart.js')
-      .then(r => r.json())
-      .then(cart => {
-        const total = cart.total_price / 100;
-        const remaining = FREE_SHIPPING_THRESHOLD - total;
-        const fill = progressEl.querySelector('.shipping-progress__fill');
-        const text = progressEl.querySelector('.shipping-progress__text span');
-        const pct = Math.min((total / FREE_SHIPPING_THRESHOLD) * 100, 100);
-        fill.style.width = pct + '%';
-
-        if (remaining <= 0) {
-          text.innerHTML = '<strong>Parabéns!</strong> Tem portes grátis nesta encomenda';
-          fill.style.backgroundColor = '#4CAF50';
-        } else {
-          text.innerHTML = `Faltam <strong>€${remaining.toFixed(2)}</strong> para portes grátis`;
-        }
-      })
-      .catch(() => {});
-  }
-
-  updateProgress();
-  document.addEventListener('cart:updated', updateProgress);
-}
-
 function createUrgencyMessage() {
   const form = document.querySelector('form[action*="/cart/add"]');
   if (!form) return;
@@ -154,10 +102,5 @@ function createUrgencyMessage() {
     <span>${message}</span>
   `;
 
-  const shippingProgress = buyButtonsWrapper.nextElementSibling;
-  if (shippingProgress) {
-    shippingProgress.after(urgency);
-  } else {
-    buyButtonsWrapper.after(urgency);
-  }
+  buyButtonsWrapper.after(urgency);
 }
