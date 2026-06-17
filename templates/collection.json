@@ -227,23 +227,42 @@
     },
     "usps_collection": {
       "type": "text-with-icons",
+      "blocks": {
+        "usp_1": {
+          "type": "item",
+          "settings": {
+            "icon": "truck",
+            "heading": "Entrega 24/48h",
+            "description": "Portugal Continental"
+          }
+        },
+        "usp_2": {
+          "type": "item",
+          "settings": {
+            "icon": "shield",
+            "heading": "Pagamento Seguro",
+            "description": "Transações protegidas"
+          }
+        },
+        "usp_3": {
+          "type": "item",
+          "settings": {
+            "icon": "gift",
+            "heading": "Envio Grátis +50€",
+            "description": "Em Portugal Continental"
+          }
+        },
+        "usp_4": {
+          "type": "item",
+          "settings": {
+            "icon": "star",
+            "heading": "Qualidade Premium",
+            "description": "Produtos certificados CE"
+          }
+        }
+      },
+      "block_order": ["usp_1", "usp_2", "usp_3", "usp_4"],
       "settings": {
-        "title": "",
-        "columns": 4,
-        "icon_1": "truck",
-        "text_1": "Entrega 24/48h",
-        "icon_2": "shield",
-        "text_2": "Pagamento seguro",
-        "icon_3": "gift",
-        "text_3": "Envio grátis +50€",
-        "icon_4": "star",
-        "text_4": "Qualidade premium",
-        "icon_5": "none",
-        "text_5": "",
-        "icon_6": "none",
-        "text_6": "",
-        "icon_7": "none",
-        "text_7": "",
         "section_width": "page-width",
         "color_scheme": "scheme-4",
         "padding-block-start": 32,
@@ -252,18 +271,39 @@
     },
     "faq_collection": {
       "type": "faq",
+      "blocks": {
+        "faq_1": {
+          "type": "question",
+          "settings": {
+            "question": "Qual o prazo de entrega?",
+            "answer": "<p>Todas as encomendas são enviadas em 24/48 horas úteis para Portugal Continental.</p>"
+          }
+        },
+        "faq_2": {
+          "type": "question",
+          "settings": {
+            "question": "Posso devolver os produtos?",
+            "answer": "<p>Sim, aceitamos devoluções até 14 dias após a receção, desde que os produtos estejam selados e por abrir.</p>"
+          }
+        },
+        "faq_3": {
+          "type": "question",
+          "settings": {
+            "question": "Os preços incluem IVA?",
+            "answer": "<p>Sim, todos os preços apresentados na loja já incluem IVA à taxa legal em vigor.</p>"
+          }
+        },
+        "faq_4": {
+          "type": "question",
+          "settings": {
+            "question": "A partir de que valor o envio é gratuito?",
+            "answer": "<p>O envio é gratuito para encomendas acima de 50€ em Portugal Continental.</p>"
+          }
+        }
+      },
+      "block_order": ["faq_1", "faq_2", "faq_3", "faq_4"],
       "settings": {
-        "title": "Perguntas Frequentes",
-        "question_1": "Qual o prazo de entrega?",
-        "answer_1": "Todas as encomendas são enviadas em 24/48 horas úteis para Portugal Continental.",
-        "question_2": "Posso devolver os produtos?",
-        "answer_2": "Sim, aceitamos devoluções até 14 dias após a receção, desde que os produtos estejam selados e por abrir.",
-        "question_3": "Os preços incluem IVA?",
-        "answer_3": "Sim, todos os preços apresentados na loja já incluem IVA à taxa legal em vigor.",
-        "question_4": "A partir de que valor o envio é gratuito?",
-        "answer_4": "O envio é gratuito para encomendas acima de 50€ em Portugal Continental.",
-        "question_5": "",
-        "answer_5": "",
+        "heading": "Perguntas Frequentes",
         "section_width": "page-width",
         "color_scheme": "scheme-1",
         "padding-block-start": 48,
