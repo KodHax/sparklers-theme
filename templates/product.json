@@ -619,7 +619,7 @@
                     "ship_content": {
                       "type": "text",
                       "settings": {
-                        "text": "<p><strong>Portugal Continental</strong> — Envio em 24h úteis, entrega em 1-2 dias úteis<br><strong>Ilhas</strong> — Açores e Madeira: 3-5 dias úteis<br><strong>Portes grátis</strong> — Em encomendas acima de €50<br><strong>Tracking</strong> — Código de rastreio enviado por email após expedição</p>",
+                        "text": "<p><strong>Portugal Continental</strong> — Envio em 24h úteis, entrega em 1-2 dias úteis<br><strong>Ilhas</strong> — Açores e Madeira: 3-5 dias úteis<br><strong>Tracking</strong> — Código de rastreio enviado por email após expedição<br><strong>Embalagem segura</strong> — Produtos embalados com cuidado para máxima proteção</p>",
                         "width": "100%",
                         "max_width": "normal",
                         "alignment": "left",
@@ -729,8 +729,8 @@
             }
           },
           "block_order": [
-            "product_title",
             "review_stars",
+            "product_title",
             "price_and_stock",
             "divider_1",
             "variant_picker",
@@ -774,9 +774,9 @@
         "bar_3": {
           "type": "item",
           "settings": {
-            "icon": "gift",
-            "heading": "Portes Grátis +50€",
-            "description": "Portugal Continental"
+            "icon": "star",
+            "heading": "Qualidade Premium",
+            "description": "Produtos certificados CE"
           }
         },
         "bar_4": {

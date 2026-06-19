@@ -14,6 +14,7 @@
   }
 
   createStickyBar();
+  enhanceQuantitySelector();
   createUrgencyMessage();
 })();
 
@@ -71,6 +72,28 @@ function createStickyBar() {
   );
 
   if (addToCartBtn) observer.observe(addToCartBtn);
+}
+
+function enhanceQuantitySelector() {
+  const qtyInputs = document.querySelectorAll('quantity-input, .quantity-selector');
+  qtyInputs.forEach(wrapper => {
+    const input = wrapper.querySelector('input[type="number"]');
+    if (!input) return;
+
+    const buttons = wrapper.querySelectorAll('button');
+    if (buttons.length >= 2) {
+      buttons.forEach(btn => {
+        btn.setAttribute('aria-label', btn.textContent.trim() === '+' ? 'Aumentar quantidade' : 'Diminuir quantidade');
+      });
+    }
+
+    input.addEventListener('focus', () => {
+      wrapper.style.borderColor = '#E8A0B4';
+    });
+    input.addEventListener('blur', () => {
+      wrapper.style.borderColor = '#e8e4e0';
+    });
+  });
 }
 
 function createUrgencyMessage() {

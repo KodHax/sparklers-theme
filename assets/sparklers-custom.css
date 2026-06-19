@@ -219,3 +219,155 @@
   color: #E6C78C;
   flex-shrink: 0;
 }
+
+/* ============================================
+   COLORFUL PRODUCT PAGE ICONS
+   ============================================ */
+
+.product-details .icon-block svg,
+.product-details .icon-or-image svg {
+  color: #E8A0B4;
+}
+
+.product-details .group-block .icon-block svg,
+.product-details .group-block .icon-or-image svg {
+  color: #E8A0B4;
+  filter: drop-shadow(0 1px 2px rgba(232, 160, 180, 0.2));
+}
+
+.accordion-block .icon-or-image svg {
+  color: #E6C78C;
+}
+
+.text-with-icons-section .icon-or-image svg,
+.text-with-icons .icon-or-image svg {
+  color: #E8A0B4;
+}
+
+/* ============================================
+   QUANTITY SELECTOR — visual +/- buttons
+   ============================================ */
+
+.quantity-selector,
+quantity-input {
+  display: inline-flex !important;
+  align-items: center;
+  border: 1.5px solid #e8e4e0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.quantity-selector button,
+quantity-input button {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #2B2B2B;
+  transition: background-color 0.15s ease;
+}
+
+.quantity-selector button:hover,
+quantity-input button:hover {
+  background-color: #FFF5F7;
+}
+
+.quantity-selector button:active,
+quantity-input button:active {
+  background-color: #F3C6CF;
+}
+
+.quantity-selector input[type="number"],
+quantity-input input[type="number"] {
+  width: 48px;
+  text-align: center;
+  border: none;
+  border-inline: 1px solid #e8e4e0;
+  font-family: var(--font-body--family, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2B2B2B;
+  background: transparent;
+  -moz-appearance: textfield;
+  padding: 0;
+  height: 44px;
+}
+
+.quantity-selector input[type="number"]::-webkit-outer-spin-button,
+.quantity-selector input[type="number"]::-webkit-inner-spin-button,
+quantity-input input[type="number"]::-webkit-outer-spin-button,
+quantity-input input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ============================================
+   PRODUCT ADD-TO-CART BUTTON — rosa override
+   ============================================ */
+
+.product-details .buy-buttons button[type="submit"],
+.product-details .buy-buttons [name="add"],
+.product-details .buy-buttons .button,
+.product-information button[type="submit"],
+.product-information [name="add"] {
+  background-color: #E8A0B4 !important;
+  color: #fff !important;
+  border-color: #E8A0B4 !important;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 14px 28px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.product-details .buy-buttons button[type="submit"]:hover,
+.product-details .buy-buttons [name="add"]:hover,
+.product-details .buy-buttons .button:hover,
+.product-information button[type="submit"]:hover,
+.product-information [name="add"]:hover {
+  background-color: #D4899E !important;
+  border-color: #D4899E !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 160, 180, 0.3);
+}
+
+/* ============================================
+   TRUST SIGNALS ROW — enhanced visual
+   ============================================ */
+
+.product-details .group-block > .group-block {
+  padding: 10px 0;
+}
+
+/* ============================================
+   ACCORDION — cleaner product info
+   ============================================ */
+
+.product-details .accordion-block {
+  border-radius: 8px;
+}
+
+.product-details .accordion-block summary,
+.product-details .accordion-block .accordion__title {
+  font-weight: 600;
+  padding: 14px 0;
+}
+
+/* ============================================
+   REVIEW STARS — golden color
+   ============================================ */
+
+.product-details .review-block svg,
+.product-details [class*="review"] svg,
+.product-details [class*="star"] svg {
+  color: #E6C78C;
+  fill: #E6C78C;
+}
