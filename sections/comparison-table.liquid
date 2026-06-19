@@ -1,0 +1,223 @@
+
+
+<div class="section-background color-{{ section.settings.color_scheme }}"></div>
+<div
+  id="section-{{ section.id }}"
+  class="section section--{{ section.settings.section_width }} color-{{ section.settings.color_scheme }} spacing-style comparison-table"
+  style="{%- render 'spacing-style', settings: section.settings %}"
+>
+  <div class="comparison-table__container">
+    {% if section.settings.heading != blank %}
+      <h2 class="comparison-table__title">{{ section.settings.heading }}</h2>
+    {% endif %}
+    <div class="comparison-table__wrapper">
+      <table class="comparison-table__table">
+        <thead>
+          <tr>
+            <th class="comparison-table__th"></th>
+            <th class="comparison-table__th comparison-table__th--us">{{ section.settings.our_brand }}</th>
+            <th class="comparison-table__th comparison-table__th--them">{{ section.settings.competitor }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for block in section.blocks %}
+            <tr {{ block.shopify_attributes }}>
+              <td class="comparison-table__feature">{{ block.settings.feature_name }}</td>
+              <td class="comparison-table__cell comparison-table__cell--us">
+                {% if block.settings.us %}
+                  <span class="comparison-table__check" aria-label="Yes">&#10003;</span>
+                {% else %}
+                  <span class="comparison-table__cross" aria-label="No">&#10007;</span>
+                {% endif %}
+              </td>
+              <td class="comparison-table__cell comparison-table__cell--them">
+                {% if block.settings.them %}
+                  <span class="comparison-table__check" aria-label="Yes">&#10003;</span>
+                {% else %}
+                  <span class="comparison-table__cross" aria-label="No">&#10007;</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% stylesheet %}
+  .comparison-table__container {
+    max-width: var(--full-page-grid-central-column-width);
+    margin: 0 auto;
+    padding-inline: var(--page-margin);
+  }
+
+  .comparison-table__title {
+    font-family: var(--font-heading--family);
+    color: var(--color-foreground-heading);
+    text-align: center;
+    margin: 0 0 40px;
+    font-size: var(--font-size--h2, 2rem);
+  }
+
+  .comparison-table__wrapper {
+    overflow-x: auto;
+  }
+
+  .comparison-table__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-body--family);
+    color: var(--color-foreground);
+  }
+
+  .comparison-table__th {
+    font-family: var(--font-heading--family);
+    color: var(--color-foreground-heading);
+    padding: 16px 20px;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    border-bottom: 2px solid #E6C78C;
+  }
+
+  .comparison-table__th:first-child {
+    text-align: left;
+  }
+
+  .comparison-table__th--us {
+    color: #E6C78C;
+  }
+
+  .comparison-table__feature {
+    padding: 14px 20px;
+    font-size: 0.9375rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .comparison-table__cell {
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .comparison-table__check {
+    color: #E6C78C;
+    font-weight: 700;
+  }
+
+  .comparison-table__cross {
+    color: #ccc;
+    font-weight: 400;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Comparison Table",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Feature",
+      "limit": 12,
+      "settings": [
+        {
+          "type": "text",
+          "id": "feature_name",
+          "label": "Feature name",
+          "default": "Feature"
+        },
+        {
+          "type": "checkbox",
+          "id": "us",
+          "label": "Us",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "them",
+          "label": "Them",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Porquê Escolher-nos?"
+    },
+    {
+      "type": "text",
+      "id": "our_brand",
+      "label": "Our brand name",
+      "default": "Sparklers Portugal"
+    },
+    {
+      "type": "text",
+      "id": "competitor",
+      "label": "Competitor name",
+      "default": "Outros"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "page-width", "label": "Page" },
+        { "value": "full-width", "label": "Full" }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "Top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "Bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "presets": [
+    {
+      "name": "Comparison Table",
+      "category": "Text",
+      "blocks": [
+        { "type": "feature", "settings": { "feature_name": "Certificação CE", "us": true, "them": false } },
+        { "type": "feature", "settings": { "feature_name": "Sem Fumo", "us": true, "them": false } },
+        { "type": "feature", "settings": { "feature_name": "Envio em 24h", "us": true, "them": false } },
+        { "type": "feature", "settings": { "feature_name": "Embalagem Premium", "us": true, "them": false } },
+        { "type": "feature", "settings": { "feature_name": "Suporte Dedicado", "us": true, "them": true } }
+      ]
+    }
+  ]
+}
+{% endschema %}

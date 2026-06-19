@@ -1,0 +1,747 @@
+{
+  "sections": {
+    "hero_sparklers": {
+      "type": "hero",
+      "blocks": {
+        "hero_heading": {
+          "type": "text",
+          "name": "t:names.heading",
+          "settings": {
+            "text": "<p>Momentos que brilham para sempre</p>",
+            "width": "fit-content",
+            "max_width": "normal",
+            "alignment": "left",
+            "type_preset": "h1",
+            "font": "var(--font-heading--family)",
+            "font_size": "3.5rem",
+            "line_height": "display-tight",
+            "letter_spacing": "heading-normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "#FAF9F7",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        },
+        "hero_subtitle": {
+          "type": "text",
+          "name": "t:names.heading",
+          "settings": {
+            "text": "<p>Sparklers, tochas de fumo e muito mais para o seu casamento ou celebração</p>",
+            "width": "fit-content",
+            "max_width": "normal",
+            "alignment": "left",
+            "type_preset": "rte",
+            "font": "var(--font-body--family)",
+            "font_size": "1.125rem",
+            "line_height": "normal",
+            "letter_spacing": "normal",
+            "case": "none",
+            "wrap": "pretty",
+            "color": "#FAF9F7cc",
+            "background": false,
+            "background_color": "#00000026",
+            "corner_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {}
+        },
+        "hero_button": {
+          "type": "button",
+          "name": "t:names.button",
+          "settings": {
+            "label": "Ver Coleção",
+            "link": "shopify://collections/all",
+            "open_in_new_tab": false,
+            "style_class": "button-primary",
+            "width": "fit-content",
+            "custom_width": 100,
+            "width_mobile": "fit-content",
+            "custom_width_mobile": 100
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "hero_heading",
+        "hero_subtitle",
+        "hero_button"
+      ],
+      "name": "Hero",
+      "settings": {
+        "media_type_1": "image",
+        "media_type_2": "image",
+        "stack_media_on_mobile": false,
+        "custom_mobile_media": false,
+        "media_type_1_mobile": "image",
+        "media_type_2_mobile": "image",
+        "open_in_new_tab": false,
+        "content_direction": "column",
+        "vertical_on_mobile": true,
+        "horizontal_alignment": "space-between",
+        "vertical_alignment": "flex-end",
+        "align_baseline": true,
+        "horizontal_alignment_flex_direction_column": "flex-start",
+        "vertical_alignment_flex_direction_column": "flex-end",
+        "gap": 16,
+        "section_width": "full-width",
+        "section_height": "large",
+        "section_height_custom": 70,
+        "color_scheme": "scheme-6",
+        "toggle_overlay": true,
+        "overlay_color": "#12121240",
+        "overlay_style": "solid",
+        "gradient_direction": "to bottom",
+        "blurred_reflection": false,
+        "reflection_opacity": 75,
+        "padding-block-start": 100,
+        "padding-block-end": 72
+      }
+    },
+    "usps_bar": {
+      "type": "text-with-icons",
+      "blocks": {
+        "usp_1": {
+          "type": "item",
+          "settings": {
+            "icon": "truck",
+            "heading": "Entrega 24/48h",
+            "description": "Envio rápido para todo o país"
+          }
+        },
+        "usp_2": {
+          "type": "item",
+          "settings": {
+            "icon": "shield",
+            "heading": "Qualidade Premium",
+            "description": "Produtos certificados CE"
+          }
+        },
+        "usp_3": {
+          "type": "item",
+          "settings": {
+            "icon": "check",
+            "heading": "Pagamento Seguro",
+            "description": "Multibanco, MB Way e cartão"
+          }
+        },
+        "usp_4": {
+          "type": "item",
+          "settings": {
+            "icon": "heart",
+            "heading": "+500 Casamentos",
+            "description": "Momentos inesquecíveis criados"
+          }
+        }
+      },
+      "block_order": ["usp_1", "usp_2", "usp_3", "usp_4"],
+      "settings": {
+        "section_width": "page-width",
+        "color_scheme": "scheme-1",
+        "padding-block-start": 32,
+        "padding-block-end": 32
+      }
+    },
+    "collection_casamentos": {
+      "type": "product-list",
+      "blocks": {
+        "static-header": {
+          "type": "_product-list-content",
+          "name": "t:names.header",
+          "static": true,
+          "settings": {
+            "content_direction": "row",
+            "vertical_on_mobile": false,
+            "horizontal_alignment": "space-between",
+            "vertical_alignment": "flex-end",
+            "align_baseline": true,
+            "horizontal_alignment_flex_direction_column": "flex-start",
+            "vertical_alignment_flex_direction_column": "center",
+            "gap": 12,
+            "width": "fill",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fit",
+            "custom_height": 100,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "background_media": "none",
+            "video_position": "cover",
+            "background_image_position": "cover",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {
+            "header_text": {
+              "type": "_product-list-text",
+              "name": "t:names.collection_title",
+              "settings": {
+                "text": "<h2>Casamentos</h2>",
+                "width": "fit-content",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "h3",
+                "font": "var(--font-heading--family)",
+                "font_size": "",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground-heading)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "header_button": {
+              "type": "_product-list-button",
+              "name": "t:names.product_list_button",
+              "settings": {
+                "label": "Ver tudo",
+                "open_in_new_tab": false,
+                "style_class": "link",
+                "width": "fit-content",
+                "custom_width": 100,
+                "width_mobile": "fit-content",
+                "custom_width_mobile": 100
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": ["header_text", "header_button"]
+        },
+        "static-product-card": {
+          "type": "_product-card",
+          "name": "t:names.product_card",
+          "static": true,
+          "settings": {
+            "product_card_gap": 4,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {
+            "gallery": {
+              "type": "_product-card-gallery",
+              "name": "t:names.product_card_media",
+              "settings": {
+                "image_ratio": "adapt",
+                "border": "none",
+                "border_width": 1,
+                "border_opacity": 100,
+                "border_radius": 8,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "title": {
+              "type": "product-title",
+              "name": "t:names.product_title",
+              "settings": {
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 4,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "price": {
+              "type": "price",
+              "name": "t:names.product_price",
+              "settings": {
+                "show_sale_price_first": true,
+                "show_installments": false,
+                "show_tax_info": false,
+                "type_preset": "h6",
+                "width": "100%",
+                "alignment": "left",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "color": "var(--color-foreground)",
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": ["gallery", "title", "price"]
+        }
+      },
+      "name": "Casamentos",
+      "settings": {
+        "collection": "casamentos",
+        "layout_type": "grid",
+        "carousel_on_mobile": true,
+        "max_products": 4,
+        "columns": 4,
+        "mobile_columns": "2",
+        "mobile_card_size": "60cqw",
+        "columns_gap": 8,
+        "rows_gap": 24,
+        "icons_style": "arrow",
+        "icons_shape": "none",
+        "section_width": "page-width",
+        "horizontal_alignment": "flex-start",
+        "gap": 28,
+        "color_scheme": "scheme-1",
+        "padding-block-start": 48,
+        "padding-block-end": 24
+      }
+    },
+    "collection_babyshower": {
+      "type": "product-list",
+      "blocks": {
+        "static-header": {
+          "type": "_product-list-content",
+          "name": "t:names.header",
+          "static": true,
+          "settings": {
+            "content_direction": "row",
+            "vertical_on_mobile": false,
+            "horizontal_alignment": "space-between",
+            "vertical_alignment": "flex-end",
+            "align_baseline": true,
+            "horizontal_alignment_flex_direction_column": "flex-start",
+            "vertical_alignment_flex_direction_column": "center",
+            "gap": 12,
+            "width": "fill",
+            "custom_width": 100,
+            "width_mobile": "fill",
+            "custom_width_mobile": 100,
+            "height": "fit",
+            "custom_height": 100,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "background_media": "none",
+            "video_position": "cover",
+            "background_image_position": "cover",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {
+            "header_text": {
+              "type": "_product-list-text",
+              "name": "t:names.collection_title",
+              "settings": {
+                "text": "<h2>Baby Shower & Revelação de Género</h2>",
+                "width": "fit-content",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "h3",
+                "font": "var(--font-heading--family)",
+                "font_size": "",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground-heading)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "header_button": {
+              "type": "_product-list-button",
+              "name": "t:names.product_list_button",
+              "settings": {
+                "label": "Ver tudo",
+                "open_in_new_tab": false,
+                "style_class": "link",
+                "width": "fit-content",
+                "custom_width": 100,
+                "width_mobile": "fit-content",
+                "custom_width_mobile": 100
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": ["header_text", "header_button"]
+        },
+        "static-product-card": {
+          "type": "_product-card",
+          "name": "t:names.product_card",
+          "static": true,
+          "settings": {
+            "product_card_gap": 4,
+            "inherit_color_scheme": true,
+            "color_scheme": "",
+            "border": "none",
+            "border_width": 1,
+            "border_opacity": 100,
+            "border_radius": 0,
+            "padding-block-start": 0,
+            "padding-block-end": 0,
+            "padding-inline-start": 0,
+            "padding-inline-end": 0
+          },
+          "blocks": {
+            "gallery": {
+              "type": "_product-card-gallery",
+              "name": "t:names.product_card_media",
+              "settings": {
+                "image_ratio": "adapt",
+                "border": "none",
+                "border_width": 1,
+                "border_opacity": 100,
+                "border_radius": 8,
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "title": {
+              "type": "product-title",
+              "name": "t:names.product_title",
+              "settings": {
+                "width": "100%",
+                "max_width": "normal",
+                "alignment": "left",
+                "type_preset": "rte",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "wrap": "pretty",
+                "color": "var(--color-foreground)",
+                "background": false,
+                "background_color": "#00000026",
+                "corner_radius": 0,
+                "padding-block-start": 4,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            },
+            "price": {
+              "type": "price",
+              "name": "t:names.product_price",
+              "settings": {
+                "show_sale_price_first": true,
+                "show_installments": false,
+                "show_tax_info": false,
+                "type_preset": "h6",
+                "width": "100%",
+                "alignment": "left",
+                "font": "var(--font-body--family)",
+                "font_size": "1rem",
+                "line_height": "normal",
+                "letter_spacing": "normal",
+                "case": "none",
+                "color": "var(--color-foreground)",
+                "padding-block-start": 0,
+                "padding-block-end": 0,
+                "padding-inline-start": 0,
+                "padding-inline-end": 0
+              },
+              "blocks": {}
+            }
+          },
+          "block_order": ["gallery", "title", "price"]
+        }
+      },
+      "name": "Baby Shower",
+      "settings": {
+        "collection": "baby-shower",
+        "layout_type": "grid",
+        "carousel_on_mobile": true,
+        "max_products": 4,
+        "columns": 4,
+        "mobile_columns": "2",
+        "mobile_card_size": "60cqw",
+        "columns_gap": 8,
+        "rows_gap": 24,
+        "icons_style": "arrow",
+        "icons_shape": "none",
+        "section_width": "page-width",
+        "horizontal_alignment": "flex-start",
+        "gap": 28,
+        "color_scheme": "scheme-2",
+        "padding-block-start": 24,
+        "padding-block-end": 48
+      }
+    },
+    "all_collections": {
+      "type": "collection-list",
+      "blocks": {},
+      "name": "Todas as Coleções",
+      "settings": {
+        "section_width": "page-width",
+        "color_scheme": "scheme-1",
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
+    },
+    "how_to_use": {
+      "type": "how-to-use",
+      "blocks": {
+        "step_1": {
+          "type": "step",
+          "settings": {
+            "step_number": "1",
+            "heading": "Escolha o Produto",
+            "description": "Selecione os sparklers, tochas ou confetis ideais para o seu evento."
+          }
+        },
+        "step_2": {
+          "type": "step",
+          "settings": {
+            "step_number": "2",
+            "heading": "Receba em 24/48h",
+            "description": "Envio rápido com tracking para todo o Portugal continental."
+          }
+        },
+        "step_3": {
+          "type": "step",
+          "settings": {
+            "step_number": "3",
+            "heading": "Prepare o Momento",
+            "description": "Distribua os sparklers pelos convidados antes do momento especial."
+          }
+        },
+        "step_4": {
+          "type": "step",
+          "settings": {
+            "step_number": "4",
+            "heading": "Crie a Magia",
+            "description": "Acenda e viva um momento inesquecível de luz e celebração."
+          }
+        }
+      },
+      "block_order": ["step_1", "step_2", "step_3", "step_4"],
+      "settings": {
+        "heading": "Como Funciona",
+        "section_width": "page-width",
+        "color_scheme": "scheme-4",
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
+    },
+    "comparison": {
+      "type": "comparison-table",
+      "blocks": {
+        "feat_1": {
+          "type": "feature",
+          "settings": {
+            "feature_name": "Entrega em 24/48h",
+            "us": true,
+            "them": false
+          }
+        },
+        "feat_2": {
+          "type": "feature",
+          "settings": {
+            "feature_name": "Certificação CE",
+            "us": true,
+            "them": false
+          }
+        },
+        "feat_3": {
+          "type": "feature",
+          "settings": {
+            "feature_name": "Sem fumo",
+            "us": true,
+            "them": false
+          }
+        },
+        "feat_4": {
+          "type": "feature",
+          "settings": {
+            "feature_name": "Suporte dedicado",
+            "us": true,
+            "them": false
+          }
+        },
+        "feat_5": {
+          "type": "feature",
+          "settings": {
+            "feature_name": "Preços competitivos",
+            "us": true,
+            "them": true
+          }
+        },
+        "feat_6": {
+          "type": "feature",
+          "settings": {
+            "feature_name": "Stock em Portugal",
+            "us": true,
+            "them": false
+          }
+        }
+      },
+      "block_order": ["feat_1", "feat_2", "feat_3", "feat_4", "feat_5", "feat_6"],
+      "settings": {
+        "heading": "Porquê Sparklers Portugal?",
+        "our_brand": "Sparklers Portugal",
+        "competitor": "Outros",
+        "section_width": "page-width",
+        "color_scheme": "scheme-1",
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
+    },
+    "testimonials_section": {
+      "type": "testimonials",
+      "blocks": {
+        "review_1": {
+          "type": "testimonial",
+          "settings": {
+            "author": "Ana Silva",
+            "role": "Noiva",
+            "rating": 5,
+            "quote": "Os sparklers foram o ponto alto do nosso casamento! Todos os convidados adoraram e as fotos ficaram mágicas. Entrega super rápida."
+          }
+        },
+        "review_2": {
+          "type": "testimonial",
+          "settings": {
+            "author": "Maria Santos",
+            "role": "Wedding Planner",
+            "rating": 5,
+            "quote": "Uso Sparklers Portugal em todos os casamentos que organizo. Qualidade consistente, sem falhas e o apoio ao cliente é excelente."
+          }
+        },
+        "review_3": {
+          "type": "testimonial",
+          "settings": {
+            "author": "Joana Ferreira",
+            "role": "Mãe",
+            "rating": 5,
+            "quote": "O balão de revelação de género foi perfeito! A emoção de toda a família quando o confeti rosa saiu... momento inesquecível!"
+          }
+        }
+      },
+      "block_order": ["review_1", "review_2", "review_3"],
+      "settings": {
+        "heading": "O Que Dizem os Nossos Clientes",
+        "section_width": "page-width",
+        "color_scheme": "scheme-1",
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
+    },
+    "faq_section": {
+      "type": "faq",
+      "blocks": {
+        "q_1": {
+          "type": "question",
+          "settings": {
+            "question": "Os sparklers são seguros para casamentos?",
+            "answer": "<p>Sim! Todos os nossos sparklers são certificados CE e cumprem as normas europeias de segurança. São de baixo fumo e adequados para uso interior e exterior.</p>"
+          }
+        },
+        "q_2": {
+          "type": "question",
+          "settings": {
+            "question": "Quanto tempo demora a entrega?",
+            "answer": "<p>Enviamos em 24 horas úteis. A entrega em Portugal continental demora 1-2 dias úteis. Para ilhas, pode demorar 3-5 dias úteis.</p>"
+          }
+        },
+        "q_3": {
+          "type": "question",
+          "settings": {
+            "question": "Posso devolver se não usar?",
+            "answer": "<p>Sim, tem 14 dias para devolver produtos não utilizados e em embalagem original. Contacte-nos para iniciar o processo de devolução.</p>"
+          }
+        },
+        "q_4": {
+          "type": "question",
+          "settings": {
+            "question": "Qual o tamanho ideal de sparkler para casamentos?",
+            "answer": "<p>Recomendamos sparklers de 70cm ou 100cm para casamentos — duram mais tempo e criam um efeito visual mais impactante nas fotos e vídeos.</p>"
+          }
+        },
+        "q_5": {
+          "type": "question",
+          "settings": {
+            "question": "As tochas de fumo mancham a roupa?",
+            "answer": "<p>As nossas tochas de fumo são de alta qualidade e não mancham tecidos. Recomendamos manter uma distância mínima de 1 metro para maior segurança.</p>"
+          }
+        }
+      },
+      "block_order": ["q_1", "q_2", "q_3", "q_4", "q_5"],
+      "settings": {
+        "heading": "Perguntas Frequentes",
+        "section_width": "page-width",
+        "color_scheme": "scheme-1",
+        "padding-block-start": 48,
+        "padding-block-end": 48
+      }
+    }
+  },
+  "order": [
+    "hero_sparklers",
+    "usps_bar",
+    "collection_casamentos",
+    "collection_babyshower",
+    "all_collections",
+    "how_to_use",
+    "comparison",
+    "testimonials_section",
+    "faq_section"
+  ]
+}

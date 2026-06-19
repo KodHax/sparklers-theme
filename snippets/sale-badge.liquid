@@ -1,0 +1,12 @@
+{% doc %}
+  Renders a sale badge with discount percentage.
+
+  @param {object} product - The product object
+{% enddoc %}
+
+{%- if product.compare_at_price > product.price -%}
+  {%- assign discount = product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round -%}
+  <span class="sale-badge" aria-label="{{ discount }}% de desconto">
+    -{{ discount }}%
+  </span>
+{%- endif -%}

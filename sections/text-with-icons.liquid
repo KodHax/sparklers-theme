@@ -1,0 +1,187 @@
+
+
+<div class="section-background color-{{ section.settings.color_scheme }}"></div>
+<div
+  id="section-{{ section.id }}"
+  class="section section--{{ section.settings.section_width }} color-{{ section.settings.color_scheme }} spacing-style text-with-icons"
+  style="{%- render 'spacing-style', settings: section.settings %}"
+>
+  <div class="text-with-icons__grid">
+    {% for block in section.blocks %}
+      <div class="text-with-icons__item" {{ block.shopify_attributes }}>
+        <div class="text-with-icons__icon">
+          {% case block.settings.icon %}
+            {% when 'truck' %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            {% when 'shield' %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            {% when 'star' %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            {% when 'heart' %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            {% when 'clock' %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {% when 'gift' %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+            {% when 'check' %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          {% endcase %}
+        </div>
+        {% if block.settings.heading != blank %}
+          <h3 class="text-with-icons__heading">{{ block.settings.heading }}</h3>
+        {% endif %}
+        {% if block.settings.description != blank %}
+          <p class="text-with-icons__description">{{ block.settings.description }}</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% stylesheet %}
+  .text-with-icons__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-inline: var(--page-margin);
+    max-width: var(--full-page-grid-central-column-width);
+    margin: 0 auto;
+
+    @media screen and (min-width: 750px) {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+  }
+
+  .text-with-icons__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .text-with-icons__icon {
+    color: #E6C78C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+  }
+
+  .text-with-icons__heading {
+    font-family: var(--font-heading--family);
+    color: var(--color-foreground-heading);
+    font-size: 1rem;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+
+  .text-with-icons__description {
+    font-family: var(--font-body--family);
+    color: var(--color-foreground);
+    font-size: 0.875rem;
+    margin: 0;
+    opacity: 0.8;
+    line-height: 1.6;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Text with Icons",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Item",
+      "limit": 12,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "truck", "label": "Truck" },
+            { "value": "shield", "label": "Shield" },
+            { "value": "star", "label": "Star" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "clock", "label": "Clock" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "check", "label": "Check" }
+          ],
+          "default": "truck"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Free Shipping"
+        },
+        {
+          "type": "text",
+          "id": "description",
+          "label": "Description",
+          "default": "On all orders over €50"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "page-width", "label": "Page" },
+        { "value": "full-width", "label": "Full" }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "Top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "Bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text with Icons",
+      "category": "Text",
+      "blocks": [
+        { "type": "item", "settings": { "icon": "truck", "heading": "Envio Grátis", "description": "Em encomendas acima de €50" } },
+        { "type": "item", "settings": { "icon": "shield", "heading": "Pagamento Seguro", "description": "Transações 100% protegidas" } },
+        { "type": "item", "settings": { "icon": "star", "heading": "Qualidade Premium", "description": "Produtos certificados CE" } },
+        { "type": "item", "settings": { "icon": "gift", "heading": "Embalagem Especial", "description": "Pronta para oferecer" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
