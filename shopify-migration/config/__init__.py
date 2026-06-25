@@ -1,1 +1,1 @@
-from config.settings import SOURCE, DEST, MAX_CONCURRENT, BATCH_SIZE, DATA_DIR, LOG_DIR
+from config.settings import SOURCE, DEST, MAX_CONCURRENT, BATCH_SIZE, DATA_DIR, LOG_DIR  # noqa: F401
