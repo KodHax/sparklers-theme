@@ -156,51 +156,88 @@ def _save(filename: str, data):
     console.print(f"  [green]Saved {path} ({count})[/green]")
 
 
-async def _paginate_endcursor(client: GraphQLClient, query: str, path: list[str], first: int = 10) -> list:
-    """Paginate using pageInfo.endCursor (the standard Shopify pattern)."""
+async def _paginate_endcursor(
+    client: GraphQLClient,
+    query: str,
+    path: list[str],
+    first: int = 50,
+    total_estimate: int = 55000,
+) -> list:
+    """Paginate using pageInfo.endCursor until hasNextPage is False."""
+    from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+
     all_items = []
     cursor = None
+    consecutive_errors = 0
+    max_consecutive_errors = 10
 
-    while True:
-        variables = {"first": first, "cursor": cursor}
-        try:
-            data = await client.execute(query, variables)
-        except Exception as e:
-            console.print(f"  [red]Query error: {e}[/red]")
-            await asyncio.sleep(3)
-            continue
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(bar_width=40),
+        TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
+        TextColumn("({task.completed}/{task.total})"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Extracting...", total=total_estimate)
 
-        node = data.get("data", {})
-        for key in path:
-            node = node.get(key, {})
-
-        edges = node.get("edges", [])
-        if not edges:
-            if data.get("errors"):
-                console.print(f"  [yellow]Errors on page, retrying: {str(data['errors'])[:200]}[/yellow]")
-                await asyncio.sleep(3)
+        while True:
+            variables = {"first": first, "cursor": cursor}
+            try:
+                data = await client.execute(query, variables)
+            except Exception as e:
+                consecutive_errors += 1
+                if consecutive_errors >= max_consecutive_errors:
+                    console.print(f"\n  [red]Stopped after {max_consecutive_errors} consecutive errors: {e}[/red]")
+                    break
+                wait = min(2 ** consecutive_errors, 30)
+                console.print(f"\n  [yellow]Error (attempt {consecutive_errors}/{max_consecutive_errors}), retrying in {wait}s: {e}[/yellow]")
+                await asyncio.sleep(wait)
                 continue
-            break
 
-        all_items.extend([edge["node"] for edge in edges])
+            node = data.get("data", {})
+            for key in path:
+                node = node.get(key, {})
 
-        page_info = node.get("pageInfo", {})
-        if not page_info.get("hasNextPage"):
-            break
+            edges = node.get("edges", [])
+            if not edges:
+                if data.get("errors"):
+                    consecutive_errors += 1
+                    if consecutive_errors >= max_consecutive_errors:
+                        console.print(f"\n  [red]Stopped: too many consecutive errors with empty data[/red]")
+                        break
+                    wait = min(2 ** consecutive_errors, 30)
+                    console.print(f"\n  [yellow]Empty page with errors ({consecutive_errors}/{max_consecutive_errors}), retrying in {wait}s...[/yellow]")
+                    await asyncio.sleep(wait)
+                    continue
+                break
 
-        cursor = page_info.get("endCursor")
-        if not cursor:
-            break
+            consecutive_errors = 0
+            all_items.extend([edge["node"] for edge in edges])
+            progress.update(task, completed=len(all_items))
 
-        if len(all_items) % 500 == 0 or len(all_items) < 100:
-            console.print(f"  [dim]Fetched {len(all_items)} items...[/dim]")
+            if len(all_items) > total_estimate:
+                progress.update(task, total=len(all_items) + 5000)
+
+            page_info = node.get("pageInfo", {})
+            if not page_info.get("hasNextPage"):
+                break
+
+            cursor = page_info.get("endCursor")
+            if not cursor:
+                console.print(f"\n  [red]endCursor is None but hasNextPage=True at {len(all_items)} items[/red]")
+                break
+
+        progress.update(task, completed=len(all_items), total=len(all_items))
 
     return all_items
 
 
 async def extract_products_base(client: GraphQLClient):
     console.print("\n[bold cyan]Query 1: Produtos Base (estrutura + variantes + imagens)...[/bold cyan]")
-    products = await _paginate_endcursor(client, PRODUCTS_BASE_QUERY, ["products"], first=10)
+    products = await _paginate_endcursor(client, PRODUCTS_BASE_QUERY, ["products"], first=50, total_estimate=55000)
     console.print(f"  Total: {len(products)} produtos")
     _save("produtos_base.json", products)
     return products
@@ -208,7 +245,7 @@ async def extract_products_base(client: GraphQLClient):
 
 async def extract_collections_map(client: GraphQLClient):
     console.print("\n[bold cyan]Query 2: Mapeamento de Coleções...[/bold cyan]")
-    collections = await _paginate_endcursor(client, COLLECTIONS_MAP_QUERY, ["collections"], first=20)
+    collections = await _paginate_endcursor(client, COLLECTIONS_MAP_QUERY, ["collections"], first=50, total_estimate=66)
 
     for coll in collections:
         is_smart = coll.get("ruleSet") is not None
@@ -248,7 +285,7 @@ async def extract_collections_map(client: GraphQLClient):
 
 async def extract_products_meta_seo(client: GraphQLClient):
     console.print("\n[bold cyan]Query 3: SEO + Metafields...[/bold cyan]")
-    products = await _paginate_endcursor(client, PRODUCTS_META_SEO_QUERY, ["products"], first=20)
+    products = await _paginate_endcursor(client, PRODUCTS_META_SEO_QUERY, ["products"], first=100, total_estimate=55000)
     console.print(f"  Total: {len(products)} produtos com meta/SEO")
     _save("produtos_meta_seo.json", products)
     return products
