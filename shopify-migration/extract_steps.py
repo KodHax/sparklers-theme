@@ -399,6 +399,82 @@ async def extract_metafield_definitions(client: GraphQLClient):
     return all_defs
 
 
+def _print_extraction_report():
+    """Print detailed stats after extraction completes."""
+    from rich.table import Table
+    from collections import Counter
+
+    base_path = os.path.join(DATA_DIR, "produtos_base.json")
+    if not os.path.exists(base_path):
+        return
+
+    with open(base_path, "r", encoding="utf-8") as f:
+        products = json.load(f)
+
+    total_products = len(products)
+    variant_counts = []
+    image_counts = []
+    products_without_variants = 0
+    products_without_images = 0
+
+    for p in products:
+        variants = p.get("variants", {}).get("edges", [])
+        images = p.get("images", {}).get("edges", [])
+        n_variants = len(variants)
+        n_images = len(images)
+        variant_counts.append(n_variants)
+        image_counts.append(n_images)
+        if n_variants == 0:
+            products_without_variants += 1
+        if n_images == 0:
+            products_without_images += 1
+
+    total_variants = sum(variant_counts)
+
+    variant_distribution = Counter(variant_counts)
+
+    console.print("\n")
+    summary = Table(title="Resumo da Extração", title_style="bold green")
+    summary.add_column("Metric", style="cyan", min_width=30)
+    summary.add_column("Value", style="bold white", justify="right")
+    summary.add_row("Total de Produtos", f"{total_products:,}")
+    summary.add_row("Total de Variantes", f"{total_variants:,}")
+    summary.add_row("Média de Variantes/Produto", f"{total_variants / max(total_products, 1):.1f}")
+    summary.add_row("Max Variantes num Produto", f"{max(variant_counts) if variant_counts else 0}")
+    summary.add_row("Produtos sem Variantes", f"{products_without_variants}")
+    summary.add_row("Total de Imagens", f"{sum(image_counts):,}")
+    summary.add_row("Produtos sem Imagens", f"{products_without_images}")
+    console.print(summary)
+
+    dist_table = Table(title="Distribuição de Variantes por Produto", title_style="bold blue")
+    dist_table.add_column("Variantes", style="cyan", justify="center")
+    dist_table.add_column("Produtos", style="white", justify="right")
+    dist_table.add_column("% do Total", style="dim", justify="right")
+    dist_table.add_column("", style="green")
+
+    for count in sorted(variant_distribution.keys()):
+        n_products = variant_distribution[count]
+        pct = (n_products / total_products) * 100
+        bar = "█" * max(1, int(pct / 2))
+        dist_table.add_row(str(count), f"{n_products:,}", f"{pct:.1f}%", bar)
+
+    console.print(dist_table)
+
+    if max(variant_counts, default=0) > 50:
+        console.print("\n  [yellow]⚠ Produtos com muitas variantes (>50):[/yellow]")
+        for p in products:
+            n = len(p.get("variants", {}).get("edges", []))
+            if n > 50:
+                console.print(f"    {p.get('handle', '?')} — {n} variantes")
+
+    skipped_path = os.path.join(DATA_DIR, "skipped_batches.json")
+    if os.path.exists(skipped_path):
+        with open(skipped_path, "r") as f:
+            skipped = json.load(f)
+        if skipped:
+            console.print(f"\n  [yellow]⚠ {len(skipped)} batch(es) foram saltados durante a extração[/yellow]")
+
+
 async def run(command: str = "all"):
     console.print("\n[bold green]═══ EXTRAÇÃO ═══[/bold green]")
     async with GraphQLClient(SOURCE, MAX_CONCURRENT) as client:
@@ -410,6 +486,8 @@ async def run(command: str = "all"):
             await extract_collections_map(client)
         if command in ("all", "meta"):
             await extract_products_meta_seo(client)
+
+    _print_extraction_report()
     console.print("\n[bold green]═══ EXTRAÇÃO COMPLETA ═══[/bold green]")
 
 
