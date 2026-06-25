@@ -404,20 +404,37 @@ def _print_extraction_report():
     from rich.table import Table
     from collections import Counter
 
-    base_path = os.path.join(DATA_DIR, "produtos_base.json")
-    if not os.path.exists(base_path):
+    products_base = None
+    meta_seo = None
+    collections = None
+    metafield_defs = None
+
+    for fname, var_name in [
+        ("produtos_base.json", "products_base"),
+        ("produtos_meta_seo.json", "meta_seo"),
+        ("mapa_colecoes.json", "collections"),
+        ("metafield_definitions.json", "metafield_defs"),
+    ]:
+        path = os.path.join(DATA_DIR, fname)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                locals()[var_name] = json.load(f)
+
+    products_base = locals().get("products_base")
+    meta_seo = locals().get("meta_seo")
+    collections = locals().get("collections")
+    metafield_defs = locals().get("metafield_defs")
+
+    if not products_base:
         return
 
-    with open(base_path, "r", encoding="utf-8") as f:
-        products = json.load(f)
-
-    total_products = len(products)
+    total_products = len(products_base)
     variant_counts = []
     image_counts = []
     products_without_variants = 0
     products_without_images = 0
 
-    for p in products:
+    for p in products_base:
         variants = p.get("variants", {}).get("edges", [])
         images = p.get("images", {}).get("edges", [])
         n_variants = len(variants)
@@ -430,20 +447,79 @@ def _print_extraction_report():
             products_without_images += 1
 
     total_variants = sum(variant_counts)
-
+    total_images = sum(image_counts)
     variant_distribution = Counter(variant_counts)
+    image_distribution = Counter(image_counts)
+
+    colls_total = len(collections) if collections else 0
+    colls_manual = 0
+    colls_smart = 0
+    colls_products_total = 0
+    colls_empty = 0
+    if collections:
+        for c in collections:
+            handles = c.get("_product_handles", [])
+            if c.get("_type") == "smart":
+                colls_smart += 1
+            else:
+                colls_manual += 1
+            colls_products_total += len(handles)
+            if len(handles) == 0:
+                colls_empty += 1
+
+    meta_count = len(meta_seo) if meta_seo else 0
+    meta_with_seo = 0
+    meta_with_metafields = 0
+    total_metafields = 0
+    if meta_seo:
+        for p in meta_seo:
+            seo = p.get("seo", {})
+            if seo.get("title") or seo.get("description"):
+                meta_with_seo += 1
+            mfs = p.get("metafields", {}).get("edges", [])
+            if mfs:
+                meta_with_metafields += 1
+                total_metafields += len(mfs)
+
+    defs_count = len(metafield_defs) if metafield_defs else 0
+    defs_product = sum(1 for d in (metafield_defs or []) if d.get("_ownerType") == "PRODUCT")
+    defs_variant = sum(1 for d in (metafield_defs or []) if d.get("_ownerType") == "PRODUCTVARIANT")
 
     console.print("\n")
     summary = Table(title="Resumo da Extração", title_style="bold green")
-    summary.add_column("Metric", style="cyan", min_width=30)
+    summary.add_column("Metric", style="cyan", min_width=38)
     summary.add_column("Value", style="bold white", justify="right")
+
+    summary.add_row("[bold]── PRODUTOS ──", "")
     summary.add_row("Total de Produtos", f"{total_products:,}")
     summary.add_row("Total de Variantes", f"{total_variants:,}")
     summary.add_row("Média de Variantes/Produto", f"{total_variants / max(total_products, 1):.1f}")
     summary.add_row("Max Variantes num Produto", f"{max(variant_counts) if variant_counts else 0}")
     summary.add_row("Produtos sem Variantes", f"{products_without_variants}")
-    summary.add_row("Total de Imagens", f"{sum(image_counts):,}")
+
+    summary.add_row("[bold]── IMAGENS ──", "")
+    summary.add_row("Total de Imagens", f"{total_images:,}")
+    summary.add_row("Média de Imagens/Produto", f"{total_images / max(total_products, 1):.1f}")
+    summary.add_row("Max Imagens num Produto", f"{max(image_counts) if image_counts else 0}")
+    summary.add_row("Produtos com Imagens", f"{total_products - products_without_images:,}")
     summary.add_row("Produtos sem Imagens", f"{products_without_images}")
+
+    summary.add_row("[bold]── COLEÇÕES ──", "")
+    summary.add_row("Total de Coleções", f"{colls_total}")
+    summary.add_row("  Manuais (Custom)", f"{colls_manual}")
+    summary.add_row("  Automatizadas (Smart)", f"{colls_smart}")
+    summary.add_row("  Coleções Vazias", f"{colls_empty}")
+    summary.add_row("Associações Produto-Coleção", f"{colls_products_total:,}")
+
+    summary.add_row("[bold]── SEO & METAFIELDS ──", "")
+    summary.add_row("Produtos com Meta/SEO extraídos", f"{meta_count:,}")
+    summary.add_row("  Com SEO (title ou description)", f"{meta_with_seo:,}")
+    summary.add_row("  Com Metafields", f"{meta_with_metafields:,}")
+    summary.add_row("Total de Metafields (valores)", f"{total_metafields:,}")
+    summary.add_row("Metafield Definitions", f"{defs_count}")
+    summary.add_row("  De Produto", f"{defs_product}")
+    summary.add_row("  De Variante", f"{defs_variant}")
+
     console.print(summary)
 
     dist_table = Table(title="Distribuição de Variantes por Produto", title_style="bold blue")
@@ -460,9 +536,23 @@ def _print_extraction_report():
 
     console.print(dist_table)
 
+    img_dist_table = Table(title="Distribuição de Imagens por Produto", title_style="bold blue")
+    img_dist_table.add_column("Imagens", style="cyan", justify="center")
+    img_dist_table.add_column("Produtos", style="white", justify="right")
+    img_dist_table.add_column("% do Total", style="dim", justify="right")
+    img_dist_table.add_column("", style="magenta")
+
+    for count in sorted(image_distribution.keys()):
+        n_products = image_distribution[count]
+        pct = (n_products / total_products) * 100
+        bar = "█" * max(1, int(pct / 2))
+        img_dist_table.add_row(str(count), f"{n_products:,}", f"{pct:.1f}%", bar)
+
+    console.print(img_dist_table)
+
     if max(variant_counts, default=0) > 50:
         console.print("\n  [yellow]⚠ Produtos com muitas variantes (>50):[/yellow]")
-        for p in products:
+        for p in products_base:
             n = len(p.get("variants", {}).get("edges", []))
             if n > 50:
                 console.print(f"    {p.get('handle', '?')} — {n} variantes")
@@ -473,6 +563,8 @@ def _print_extraction_report():
             skipped = json.load(f)
         if skipped:
             console.print(f"\n  [yellow]⚠ {len(skipped)} batch(es) foram saltados durante a extração[/yellow]")
+
+    console.print(f"\n  [dim]Para validar contra a loja: python validate_extraction.py[/dim]")
 
 
 async def run(command: str = "all"):
