@@ -140,6 +140,7 @@ async def create_products(client: GraphQLClient) -> dict:
             "productType": product.get("productType"),
             "status": "DRAFT",
             "tags": product.get("tags", []),
+            "templateSuffix": product.get("templateSuffix"),
         }
 
         if product.get("seo"):

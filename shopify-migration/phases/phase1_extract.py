@@ -90,6 +90,7 @@ query($cursor: String) {
         productType
         status
         tags
+        templateSuffix
         seo { title description }
         options { name values }
         metafields(first: 50) {
