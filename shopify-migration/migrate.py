@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
 Shopify Migration Tool — Orquestrador Principal
-Migra ~55k produtos entre duas lojas Shopify com integridade total.
 
 Uso:
-  python migrate.py extract        # Fase 1: Extração
-  python migrate.py prepare        # Fase 2: Preparação da estrutura
-  python migrate.py ingest         # Fase 3: Ingestão e mapeamento
-  python migrate.py remap          # Remapear metafields com referências
-  python migrate.py validate       # Fase 4: Auditoria
-  python migrate.py golive         # Ativar produtos + publicar
-  python migrate.py full           # Fases 1-4 sequenciais (sem golive)
+  python extract_steps.py all          # Fase 1: Extrair (3 queries leves)
+  python extract_steps.py base         # Só produtos base
+  python extract_steps.py colecoes     # Só coleções
+  python extract_steps.py meta         # Só SEO + metafields
+
+  python merge_data.py                 # Fase 2: Merge local -> migracao_pronta.json
+
+  python upload_test.py                # Fase 3: Upload teste (50 produtos)
+  python upload_test.py --limit 10     # Upload teste (10 produtos)
+  python upload_test.py --full         # Upload TODOS os produtos
+  python upload_test.py defs           # Só criar metafield definitions
+  python upload_test.py colecoes       # Só criar coleções
+  python upload_test.py produtos       # Só upload produtos
+  python upload_test.py associar       # Só associar coleções
 """
 import asyncio
 import sys
@@ -23,55 +29,26 @@ console = Console()
 async def main():
     if len(sys.argv) < 2:
         console.print(__doc__)
-        sys.exit(1)
+        sys.exit(0)
 
     command = sys.argv[1].lower()
 
     if command == "extract":
-        from phases.phase1_extract import run
+        from extract_steps import run
+        cmd = sys.argv[2] if len(sys.argv) > 2 else "all"
+        await run(cmd)
+
+    elif command == "merge":
+        from merge_data import run
+        run()
+
+    elif command == "upload":
+        from upload_test import run
         await run()
-
-    elif command == "prepare":
-        from phases.phase2_prepare import run
-        await run()
-
-    elif command == "ingest":
-        from phases.phase3_ingest import run
-        await run()
-
-    elif command == "remap":
-        from utils.remap_references import remap_reference_metafields
-        await remap_reference_metafields()
-
-    elif command == "validate":
-        from phases.phase4_validate import run
-        await run()
-
-    elif command == "golive":
-        confirm = input("\n⚠️  Go-Live irá ATIVAR todos os produtos DRAFT. Confirmar? (yes/no): ")
-        if confirm.strip().lower() == "yes":
-            from phases.phase4_validate import go_live
-            await go_live()
-        else:
-            console.print("[yellow]Go-Live cancelado.[/yellow]")
-
-    elif command == "full":
-        from phases.phase1_extract import run as run1
-        from phases.phase2_prepare import run as run2
-        from phases.phase3_ingest import run as run3
-        from utils.remap_references import remap_reference_metafields
-        from phases.phase4_validate import run as run4
-
-        await run1()
-        await run2()
-        await run3()
-        await remap_reference_metafields()
-        await run4()
 
     else:
-        console.print(f"[red]Unknown command: {command}[/red]")
+        console.print(f"[red]Unknown: {command}[/red]")
         console.print(__doc__)
-        sys.exit(1)
 
 
 if __name__ == "__main__":

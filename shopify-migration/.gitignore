@@ -1,6 +1,7 @@
 .env
 data/*.json
 data/.token_*
+data_ready/*.json
 logs/*.log
 logs/*.csv
 __pycache__/
