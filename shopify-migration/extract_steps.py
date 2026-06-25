@@ -163,13 +163,17 @@ async def _paginate_endcursor(
     first: int = 50,
     total_estimate: int = 55000,
 ) -> list:
-    """Paginate using pageInfo.endCursor until hasNextPage is False."""
+    """Paginate using pageInfo.endCursor until hasNextPage is False.
+    On persistent failures, reduces batch size to isolate corrupted items
+    and skips them to continue extraction."""
     from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 
     all_items = []
     cursor = None
     consecutive_errors = 0
-    max_consecutive_errors = 10
+    max_consecutive_errors = 5
+    skipped_cursors = []
+    current_first = first
 
     with Progress(
         SpinnerColumn(),
@@ -184,16 +188,27 @@ async def _paginate_endcursor(
         task = progress.add_task("Extracting...", total=total_estimate)
 
         while True:
-            variables = {"first": first, "cursor": cursor}
+            variables = {"first": current_first, "cursor": cursor}
             try:
                 data = await client.execute(query, variables)
             except Exception as e:
                 consecutive_errors += 1
                 if consecutive_errors >= max_consecutive_errors:
-                    console.print(f"\n  [red]Stopped after {max_consecutive_errors} consecutive errors: {e}[/red]")
+                    skip_result = await _try_skip_batch(client, query, path, cursor, current_first, first)
+                    if skip_result:
+                        new_cursor, rescued_items = skip_result
+                        all_items.extend(rescued_items)
+                        progress.update(task, completed=len(all_items))
+                        skipped_cursors.append({"at_item": len(all_items), "cursor": cursor, "error": str(e)})
+                        console.print(f"\n  [yellow]⚠ Skipped corrupted batch at item ~{len(all_items)}, rescued {len(rescued_items)} items, continuing...[/yellow]")
+                        cursor = new_cursor
+                        consecutive_errors = 0
+                        current_first = first
+                        continue
+                    console.print(f"\n  [red]Cannot skip batch, stopped at {len(all_items)} items: {e}[/red]")
                     break
                 wait = min(2 ** consecutive_errors, 30)
-                console.print(f"\n  [yellow]Error (attempt {consecutive_errors}/{max_consecutive_errors}), retrying in {wait}s: {e}[/yellow]")
+                console.print(f"\n  [yellow]Error ({consecutive_errors}/{max_consecutive_errors}), retrying in {wait}s...[/yellow]")
                 await asyncio.sleep(wait)
                 continue
 
@@ -206,7 +221,18 @@ async def _paginate_endcursor(
                 if data.get("errors"):
                     consecutive_errors += 1
                     if consecutive_errors >= max_consecutive_errors:
-                        console.print(f"\n  [red]Stopped: too many consecutive errors with empty data[/red]")
+                        skip_result = await _try_skip_batch(client, query, path, cursor, current_first, first)
+                        if skip_result:
+                            new_cursor, rescued_items = skip_result
+                            all_items.extend(rescued_items)
+                            progress.update(task, completed=len(all_items))
+                            skipped_cursors.append({"at_item": len(all_items), "cursor": cursor, "errors": str(data["errors"])[:200]})
+                            console.print(f"\n  [yellow]⚠ Skipped corrupted batch at item ~{len(all_items)}, rescued {len(rescued_items)} items, continuing...[/yellow]")
+                            cursor = new_cursor
+                            consecutive_errors = 0
+                            current_first = first
+                            continue
+                        console.print(f"\n  [red]Cannot skip batch, stopped at {len(all_items)} items[/red]")
                         break
                     wait = min(2 ** consecutive_errors, 30)
                     console.print(f"\n  [yellow]Empty page with errors ({consecutive_errors}/{max_consecutive_errors}), retrying in {wait}s...[/yellow]")
@@ -215,6 +241,7 @@ async def _paginate_endcursor(
                 break
 
             consecutive_errors = 0
+            current_first = first
             all_items.extend([edge["node"] for edge in edges])
             progress.update(task, completed=len(all_items))
 
@@ -232,7 +259,71 @@ async def _paginate_endcursor(
 
         progress.update(task, completed=len(all_items), total=len(all_items))
 
+    if skipped_cursors:
+        skip_path = os.path.join(DATA_DIR, "skipped_batches.json")
+        with open(skip_path, "w") as f:
+            json.dump(skipped_cursors, f, indent=2)
+        console.print(f"\n  [yellow]⚠ {len(skipped_cursors)} batch(es) skipped. Details in {skip_path}[/yellow]")
+
     return all_items
+
+
+async def _try_skip_batch(
+    client: GraphQLClient,
+    query: str,
+    path: list[str],
+    stuck_cursor: str | None,
+    current_first: int,
+    original_first: int,
+) -> tuple[str, list] | None:
+    """Try to skip past a corrupted batch by reducing batch size to 1,
+    fetching items one by one to find the good ones, then jumping ahead."""
+    console.print(f"\n  [cyan]Attempting to skip corrupted batch (reducing to first:1)...[/cyan]")
+
+    rescued = []
+    skip_cursor = stuck_cursor
+
+    for attempt in range(original_first + 5):
+        try:
+            data = await client.execute(query, {"first": 1, "cursor": skip_cursor})
+        except Exception:
+            skip_cursor = None
+            break
+
+        node = data.get("data", {})
+        for key in path:
+            node = node.get(key, {})
+
+        edges = node.get("edges", [])
+        page_info = node.get("pageInfo", {})
+
+        if edges and not data.get("errors"):
+            rescued.extend([e["node"] for e in edges])
+
+        if not page_info.get("hasNextPage"):
+            if rescued:
+                return None, rescued
+            return None
+
+        new_cursor = page_info.get("endCursor")
+        if not new_cursor:
+            break
+
+        skip_cursor = new_cursor
+
+        if len(rescued) >= 3 or (edges and not data.get("errors")):
+            test_data = await client.execute(query, {"first": original_first, "cursor": skip_cursor})
+            test_node = test_data.get("data", {})
+            for key in path:
+                test_node = test_node.get(key, {})
+            if test_node.get("edges") and not test_data.get("errors"):
+                console.print(f"  [green]Found clean batch after skipping {attempt + 1} items[/green]")
+                return skip_cursor, rescued
+
+    if skip_cursor and skip_cursor != stuck_cursor:
+        return skip_cursor, rescued
+
+    return None
 
 
 async def extract_products_base(client: GraphQLClient):
