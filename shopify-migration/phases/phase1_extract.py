@@ -105,10 +105,8 @@ query($cursor: String) {
               price
               compareAtPrice
               barcode
-              weight
-              weightUnit
               selectedOptions { name value }
-              inventoryItem { id tracked }
+              inventoryItem { id tracked weight { unit value } }
               metafields(first: 10) {
                 edges { node { namespace key value type } }
               }
