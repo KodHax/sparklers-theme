@@ -162,21 +162,23 @@ query {
 }
 """
 
-INVENTORY_LEVELS_QUERY = """
-query($inventoryItemId: ID!, $cursor: String) {
-  inventoryItem(id: $inventoryItemId) {
-    inventoryLevels(first: 50, after: $cursor) {
-      edges {
-        cursor
-        node {
-          location { id name }
-          quantities(names: ["available", "on_hand"]) {
-            name
-            quantity
+INVENTORY_ITEMS_QUERY = """
+query($inventoryItemIds: [ID!]!) {
+  nodes(ids: $inventoryItemIds) {
+    ... on InventoryItem {
+      id
+      tracked
+      inventoryLevels(first: 10) {
+        edges {
+          node {
+            location { id name }
+            quantities(names: ["available", "on_hand"]) {
+              name
+              quantity
+            }
           }
         }
       }
-      pageInfo { hasNextPage }
     }
   }
 }
@@ -278,27 +280,45 @@ async def extract_inventory(client: GraphQLClient, products: list) -> dict:
     logger = MigrationLogger("phase1_inventory")
     inventory_map = {}
 
+    all_variants = []
     for product in products:
         for edge in product.get("variants", {}).get("edges", []):
             variant = edge["node"]
             inv_item = variant.get("inventoryItem", {})
             inv_item_id = inv_item.get("id")
-            if not inv_item_id or not inv_item.get("tracked"):
-                continue
-            try:
-                levels = await client.paginate(
-                    INVENTORY_LEVELS_QUERY,
-                    ["inventoryItem", "inventoryLevels"],
-                    {"inventoryItemId": inv_item_id},
-                )
-                inventory_map[inv_item_id] = {
+            if inv_item_id:
+                all_variants.append({
+                    "inv_item_id": inv_item_id,
                     "variant_id": variant["id"],
                     "sku": variant.get("sku", ""),
+                })
+
+    console.print(f"  Total inventory items to fetch: {len(all_variants)}")
+
+    batch_size = 20
+    for i in range(0, len(all_variants), batch_size):
+        batch = all_variants[i:i + batch_size]
+        ids = [v["inv_item_id"] for v in batch]
+        try:
+            result = await client.execute(INVENTORY_ITEMS_QUERY, {"inventoryItemIds": ids})
+            nodes = result.get("data", {}).get("nodes", [])
+            for node, var_info in zip(nodes, batch):
+                if not node or not node.get("id"):
+                    continue
+                levels = [e["node"] for e in node.get("inventoryLevels", {}).get("edges", [])]
+                inventory_map[var_info["inv_item_id"]] = {
+                    "variant_id": var_info["variant_id"],
+                    "sku": var_info["sku"],
+                    "tracked": node.get("tracked", False),
                     "levels": levels,
                 }
-                logger.success(inv_item_id)
-            except Exception as e:
-                logger.error(inv_item_id, "INVENTORY_FETCH", str(e))
+                logger.success(var_info["inv_item_id"])
+        except Exception as e:
+            for var_info in batch:
+                logger.error(var_info["inv_item_id"], "INVENTORY_FETCH", str(e))
+
+        if (i + batch_size) % 500 == 0:
+            console.print(f"  Inventory progress: {min(i + batch_size, len(all_variants))}/{len(all_variants)}")
 
     _save("inventory.json", inventory_map)
     console.print(f"  Inventory items mapped: {len(inventory_map)}")

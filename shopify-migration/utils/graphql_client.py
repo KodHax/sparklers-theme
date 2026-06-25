@@ -54,21 +54,41 @@ class GraphQLClient:
 
             return data
 
-    async def paginate(self, query: str, path: list[str], variables: dict | None = None) -> list:
+    async def paginate(self, query: str, path: list[str], variables: dict | None = None, max_retries: int = 3) -> list:
         all_items = []
         vars_ = dict(variables or {})
         vars_.setdefault("cursor", None)
+        consecutive_errors = 0
 
         while True:
-            data = await self.execute(query, vars_)
+            try:
+                data = await self.execute(query, vars_)
+            except Exception as e:
+                consecutive_errors += 1
+                if consecutive_errors >= max_retries:
+                    console.print(f"  [red]Pagination stopped after {max_retries} consecutive errors: {e}[/red]")
+                    break
+                console.print(f"  [yellow]Pagination error (attempt {consecutive_errors}), retrying: {e}[/yellow]")
+                await asyncio.sleep(2 ** consecutive_errors)
+                continue
+
             node = data.get("data", {})
             for key in path:
                 node = node.get(key, {})
 
             edges = node.get("edges", [])
             if not edges:
+                if data.get("errors"):
+                    consecutive_errors += 1
+                    if consecutive_errors >= max_retries:
+                        console.print(f"  [red]Pagination stopped: GraphQL errors with no data[/red]")
+                        break
+                    console.print(f"  [yellow]Empty page with errors, retrying ({consecutive_errors}/{max_retries})...[/yellow]")
+                    await asyncio.sleep(2 ** consecutive_errors)
+                    continue
                 break
 
+            consecutive_errors = 0
             all_items.extend([edge["node"] for edge in edges])
             page_info = node.get("pageInfo", {})
 
