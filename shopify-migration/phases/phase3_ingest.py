@@ -158,7 +158,8 @@ async def create_products(client: GraphQLClient) -> dict:
             for vedge in variant_edges:
                 v = vedge["node"]
                 inv_item = v.get("inventoryItem", {})
-                weight_data = inv_item.get("weight", {}) or {}
+                measurement = inv_item.get("measurement", {}) or {}
+                weight_data = measurement.get("weight", {}) or {}
                 var_input = {
                     "sku": v.get("sku"),
                     "price": v.get("price"),
