@@ -38,15 +38,19 @@ class GraphQLClient:
             data = response.json()
 
             if "errors" in data:
+                errors_str = str(data["errors"])
                 for err in data["errors"]:
-                    if "THROTTLED" in str(err.get("extensions", {})):
-                        cost_info = err.get("extensions", {}).get("cost", {})
-                        wait_time = cost_info.get("requestedQueryCost", 2)
-                        console.print(f"[yellow]Throttled, waiting {wait_time}s...[/yellow]")
+                    ext = err.get("extensions", {})
+                    if "THROTTLED" in str(ext) or "MAX_COST_EXCEEDED" in str(ext):
+                        cost_info = ext.get("cost", {})
+                        wait_time = max(cost_info.get("requestedQueryCost", 2) / 100, 2)
+                        console.print(f"[yellow]Throttled/cost exceeded, waiting {wait_time:.0f}s...[/yellow]")
                         await asyncio.sleep(min(wait_time, 10))
                         raise httpx.HTTPStatusError(
                             "Throttled", request=response.request, response=response
                         )
+                if not data.get("data"):
+                    console.print(f"[red]GraphQL errors: {errors_str[:500]}[/red]")
 
             return data
 

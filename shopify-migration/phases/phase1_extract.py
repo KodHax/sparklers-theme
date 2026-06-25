@@ -78,7 +78,7 @@ query($collectionId: ID!, $cursor: String) {
 
 PRODUCTS_QUERY = """
 query($cursor: String) {
-  products(first: 50, after: $cursor) {
+  products(first: 10, after: $cursor) {
     edges {
       cursor
       node {
@@ -93,20 +93,10 @@ query($cursor: String) {
         templateSuffix
         seo { title description }
         options { name values }
-        metafields(first: 50) {
+        metafields(first: 20) {
           edges { node { namespace key value type } }
         }
-        media(first: 100) {
-          edges {
-            node {
-              ... on MediaImage {
-                id
-                image { url altText }
-              }
-            }
-          }
-        }
-        variants(first: 100) {
+        variants(first: 30) {
           edges {
             node {
               id
@@ -118,12 +108,8 @@ query($cursor: String) {
               weight
               weightUnit
               selectedOptions { name value }
-              inventoryItem {
-                id
-                tracked
-              }
-              image { url altText }
-              metafields(first: 30) {
+              inventoryItem { id tracked }
+              metafields(first: 10) {
                 edges { node { namespace key value type } }
               }
             }
@@ -132,6 +118,33 @@ query($cursor: String) {
       }
     }
     pageInfo { hasNextPage }
+  }
+}
+"""
+
+PRODUCT_MEDIA_QUERY = """
+query($productId: ID!, $cursor: String) {
+  product(id: $productId) {
+    media(first: 50, after: $cursor) {
+      edges {
+        cursor
+        node {
+          ... on MediaImage {
+            id
+            image { url altText }
+          }
+        }
+      }
+      pageInfo { hasNextPage }
+    }
+    variants(first: 100) {
+      edges {
+        node {
+          id
+          image { url altText }
+        }
+      }
+    }
   }
 }
 """
@@ -218,8 +231,36 @@ async def extract_collections(client: GraphQLClient) -> list:
 
 
 async def extract_products(client: GraphQLClient) -> list:
-    console.print("[bold cyan]Extracting Products...[/bold cyan]")
+    console.print("[bold cyan]Extracting Products (core + variants)...[/bold cyan]")
     products = await client.paginate(PRODUCTS_QUERY, ["products"])
+    console.print(f"  Products fetched: {len(products)}")
+
+    console.print("[bold cyan]Extracting Product Media (separate pass)...[/bold cyan]")
+    for i, product in enumerate(products):
+        pid = product["id"]
+        try:
+            media_items = await client.paginate(
+                PRODUCT_MEDIA_QUERY,
+                ["product", "media"],
+                {"productId": pid},
+            )
+            product["media"] = {"edges": [{"node": m} for m in media_items]}
+
+            media_result = await client.execute(PRODUCT_MEDIA_QUERY, {"productId": pid})
+            variant_edges = media_result.get("data", {}).get("product", {}).get("variants", {}).get("edges", [])
+            for ve in variant_edges:
+                vid = ve["node"]["id"]
+                vimg = ve["node"].get("image")
+                for var_edge in product.get("variants", {}).get("edges", []):
+                    if var_edge["node"]["id"] == vid:
+                        var_edge["node"]["image"] = vimg
+                        break
+        except Exception as e:
+            console.print(f"  [yellow]Media fetch failed for {pid}: {e}[/yellow]")
+
+        if (i + 1) % 100 == 0:
+            console.print(f"  Media progress: {i + 1}/{len(products)}")
+
     console.print(f"  Total products extracted: {len(products)}")
     _save("products.json", products)
     return products
