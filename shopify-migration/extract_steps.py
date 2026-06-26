@@ -82,6 +82,7 @@ query getCollectionsMap($first: Int!, $cursor: String) {
         handle
         descriptionHtml
         sortOrder
+        templateSuffix
         seo { title description }
         image { url altText }
         ruleSet {

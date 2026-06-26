@@ -370,6 +370,7 @@ async def create_collections(client: GraphQLClient, limit: int | None = None):
             "handle": coll.get("handle"),
             "descriptionHtml": coll.get("descriptionHtml", ""),
             "sortOrder": coll.get("sortOrder"),
+            "templateSuffix": coll.get("templateSuffix"),
         }
 
         if coll.get("seo"):
