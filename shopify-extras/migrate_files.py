@@ -37,7 +37,6 @@ query getFiles($first: Int!, $cursor: String) {
             width
             height
           }
-          originalFileSize
           mimeType
         }
         ... on GenericFile {
@@ -45,14 +44,12 @@ query getFiles($first: Int!, $cursor: String) {
           alt
           fileStatus
           url
-          originalFileSize
           mimeType
         }
         ... on Video {
           id
           alt
           fileStatus
-          originalFileSize
           sources {
             url
             mimeType
@@ -121,7 +118,6 @@ async def _fetch_all_files(client, label=""):
                 "alt": node.get("alt", ""),
                 "fileStatus": node.get("fileStatus"),
                 "mimeType": node.get("mimeType"),
-                "originalFileSize": node.get("originalFileSize"),
             }
 
             if node.get("image"):
