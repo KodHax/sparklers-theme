@@ -275,9 +275,11 @@ def _build_address(addr):
         return None
     result = {}
     for f in ["firstName", "lastName", "address1", "address2", "city", "province",
-              "provinceCode", "country", "countryCodeV2", "zip", "phone", "company"]:
+              "provinceCode", "country", "zip", "phone", "company"]:
         if addr.get(f):
             result[f] = addr[f]
+    if addr.get("countryCodeV2"):
+        result["countryCode"] = addr["countryCodeV2"]
     return result if result else None
 
 
