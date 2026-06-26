@@ -108,6 +108,30 @@ mutation inventorySetOnHandQuantities($input: InventorySetOnHandQuantitiesInput!
 """
 
 
+class AccessDeniedError(Exception):
+    pass
+
+
+def _check_api_errors(result: dict, context: str = ""):
+    """Check for top-level GraphQL errors (403, Access Denied, etc.) and raise loudly."""
+    errors = result.get("errors", [])
+    if not errors:
+        return
+    for err in errors:
+        msg = err.get("message", "")
+        if "access denied" in msg.lower() or "forbidden" in msg.lower():
+            raise AccessDeniedError(
+                f"[ACESSO NEGADO] {msg}\n"
+                f"  Contexto: {context}\n"
+                f"  Solução: Apaga o token em cache e re-autentica com os scopes corretos.\n"
+                f"  Corre: python -c \"from utils.oauth import invalidate_cached_token; invalidate_cached_token('URL_DA_LOJA')\""
+            )
+    error_msgs = "; ".join(e.get("message", str(e)) for e in errors)
+    if not result.get("data"):
+        raise RuntimeError(f"GraphQL API error ({context}): {error_msgs}")
+    console.print(f"  [yellow]⚠ API warnings ({context}): {error_msgs[:300]}[/yellow]")
+
+
 def _load(filename: str, directory: str = DATA_DIR):
     path = os.path.join(directory, filename)
     with open(path, "r", encoding="utf-8") as f:
@@ -142,6 +166,7 @@ async def create_metafield_definitions(client: GraphQLClient):
 
         try:
             result = await client.execute(CREATE_METAFIELD_DEF, {"definition": definition_input})
+            _check_api_errors(result, f"metafieldDefinitionCreate [{key}]")
             errors = result.get("data", {}).get("metafieldDefinitionCreate", {}).get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
@@ -154,6 +179,8 @@ async def create_metafield_definitions(client: GraphQLClient):
                 new_id = result["data"]["metafieldDefinitionCreate"]["createdDefinition"]["id"]
                 state.mark_done(key, new_id)
                 logger.success(key)
+        except AccessDeniedError:
+            raise
         except Exception as e:
             logger.error(key, "EXCEPTION", str(e))
 
@@ -204,6 +231,7 @@ async def create_metaobjects(client: GraphQLClient):
                     "fieldDefinitions": field_defs,
                 }
             })
+            _check_api_errors(result, f"metaobjectDefinitionCreate [{obj_type}]")
             errors = result.get("data", {}).get("metaobjectDefinitionCreate", {}).get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
@@ -216,6 +244,8 @@ async def create_metaobjects(client: GraphQLClient):
                 new_id = result["data"]["metaobjectDefinitionCreate"]["metaobjectDefinition"]["id"]
                 state.mark_done(key, new_id)
                 logger.success(key, f"-> {new_id}")
+        except AccessDeniedError:
+            raise
         except Exception as e:
             logger.error(key, "EXCEPTION", str(e))
 
@@ -248,6 +278,7 @@ async def create_metaobjects(client: GraphQLClient):
                     "fields": fields,
                 }
             })
+            _check_api_errors(result, f"metaobjectCreate [{old_id}]")
             errors = result.get("data", {}).get("metaobjectCreate", {}).get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
@@ -260,6 +291,8 @@ async def create_metaobjects(client: GraphQLClient):
                 new_mo = result["data"]["metaobjectCreate"]["metaobject"]
                 state.mark_done(old_id, new_mo["id"])
                 logger.success(old_id, f"-> {new_mo['id']}")
+        except AccessDeniedError:
+            raise
         except Exception as e:
             logger.error(old_id, "EXCEPTION", str(e))
 
@@ -311,6 +344,7 @@ async def create_collections(client: GraphQLClient):
 
         try:
             result = await client.execute(CREATE_COLLECTION, {"input": coll_input})
+            _check_api_errors(result, f"collectionCreate [{coll.get('title', old_id)}]")
             errors = result.get("data", {}).get("collectionCreate", {}).get("userErrors", [])
             if errors:
                 logger.error(old_id, "USER_ERROR", "; ".join(e["message"] for e in errors))
@@ -319,6 +353,8 @@ async def create_collections(client: GraphQLClient):
                 state.mark_done(old_id, new_coll["id"])
                 state.mark_done(f"handle:{new_coll['handle']}", new_coll["id"])
                 logger.success(old_id, f"-> {new_coll['id']}")
+        except AccessDeniedError:
+            raise
         except Exception as e:
             logger.error(old_id, "EXCEPTION", str(e))
 
@@ -401,6 +437,7 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                 "input": product_input,
                 "media": media_input if media_input else None,
             })
+            _check_api_errors(result, f"productCreate [{handle}]")
             errors = result.get("data", {}).get("productCreate", {}).get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
@@ -418,6 +455,8 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                         if old_inv_id:
                             variant_state.mark_done(old_inv_id, inv_item_id)
                 logger.success(handle, f"-> {new_product['id']}")
+        except AccessDeniedError:
+            raise
         except Exception as e:
             logger.error(handle, "EXCEPTION", str(e))
 
@@ -460,11 +499,14 @@ async def associate_collections(client: GraphQLClient, limit: int | None = 50):
                     "id": coll_id,
                     "productIds": batch,
                 })
+                _check_api_errors(result, f"collectionAddProducts [{coll_id}]")
                 errors = result.get("data", {}).get("collectionAddProducts", {}).get("userErrors", [])
                 if errors:
                     logger.error(coll_id, "ASSOC_ERROR", "; ".join(e["message"] for e in errors))
                 else:
                     logger.success(coll_id, f"Added {len(batch)} products")
+            except AccessDeniedError:
+                raise
             except Exception as e:
                 logger.error(coll_id, "EXCEPTION", str(e))
 
@@ -533,6 +575,7 @@ async def inject_inventory(client: GraphQLClient, limit: int | None = 50):
                     "setQuantities": set_quantities,
                 }
             })
+            _check_api_errors(result, f"inventorySetOnHandQuantities [batch {i}]")
             errors = result.get("data", {}).get("inventorySetOnHandQuantities", {}).get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
@@ -540,6 +583,8 @@ async def inject_inventory(client: GraphQLClient, limit: int | None = 50):
             else:
                 for q in batch:
                     logger.success(q["_sku"] or q["inventoryItemId"], f"qty={q['quantity']}")
+        except AccessDeniedError:
+            raise
         except Exception as e:
             logger.error(f"batch_{i}", "EXCEPTION", str(e))
 
@@ -564,19 +609,32 @@ async def run():
 
     console.print(f"\n[bold green]═══ UPLOAD {'TESTE' if limit else 'COMPLETO'} ═══[/bold green]")
 
-    async with GraphQLClient(DEST, MAX_CONCURRENT) as client:
-        if command in ("all", "defs"):
-            await create_metafield_definitions(client)
-        if command in ("all", "metaobjects"):
-            await create_metaobjects(client)
-        if command in ("all", "colecoes"):
-            await create_collections(client)
-        if command in ("all", "produtos"):
-            await upload_products(client, limit)
-        if command in ("all", "associar"):
-            await associate_collections(client, limit)
-        if command in ("all", "inventario"):
-            await inject_inventory(client, limit)
+    try:
+        async with GraphQLClient(DEST, MAX_CONCURRENT) as client:
+            if command in ("all", "defs"):
+                await create_metafield_definitions(client)
+            if command in ("all", "metaobjects"):
+                await create_metaobjects(client)
+            if command in ("all", "colecoes"):
+                await create_collections(client)
+            if command in ("all", "produtos"):
+                await upload_products(client, limit)
+            if command in ("all", "associar"):
+                await associate_collections(client, limit)
+            if command in ("all", "inventario"):
+                await inject_inventory(client, limit)
+    except AccessDeniedError as e:
+        console.print(f"\n[bold red]{'═' * 60}[/bold red]")
+        console.print(f"[bold red]ERRO FATAL: PERMISSÕES INSUFICIENTES[/bold red]")
+        console.print(f"[bold red]{'═' * 60}[/bold red]")
+        console.print(f"\n[red]{e}[/red]")
+        console.print(f"\n[yellow]Passos para resolver:[/yellow]")
+        console.print(f"  1. Apaga o token em cache:")
+        console.print(f"     [cyan]python reauth.py[/cyan]")
+        console.print(f"  2. Re-corre o upload (vai pedir nova autenticação)")
+        console.print(f"     [cyan]python upload_test.py {command}[/cyan]")
+        console.print()
+        sys.exit(1)
 
     console.print(f"\n[bold green]═══ UPLOAD COMPLETO ═══[/bold green]")
 

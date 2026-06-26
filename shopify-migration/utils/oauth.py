@@ -23,7 +23,11 @@ SCOPES = (
     "read_locations,"
     "read_content,write_content,"
     "read_metaobjects,write_metaobjects,"
-    "read_publications,write_publications"
+    "read_publications,write_publications,"
+    "read_product_listings,"
+    "read_collection_listings,"
+    "write_merchant_managed_fulfillment_orders,"
+    "read_assigned_fulfillment_orders"
 )
 
 TOKEN_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
@@ -51,6 +55,17 @@ def _save_token(shop_domain: str, access_token: str):
     path = _cache_path(shop_domain)
     with open(path, "w") as f:
         json.dump({"access_token": access_token}, f)
+
+
+def invalidate_cached_token(shop_url: str):
+    """Delete cached token to force re-authentication."""
+    shop_domain = shop_url.rstrip("/")
+    path = _cache_path(shop_domain)
+    if os.path.exists(path):
+        os.remove(path)
+        console.print(f"  [yellow]Token cache removed for {shop_domain}[/yellow]")
+    else:
+        console.print(f"  [dim]No cached token found for {shop_domain}[/dim]")
 
 
 def _verify_hmac(query_params: dict, client_secret: str) -> bool:
