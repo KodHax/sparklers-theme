@@ -75,19 +75,23 @@ async def _get_count(client: GraphQLClient, query: str, key: str, variables: dic
         return f"Error: {e}"
 
 
-async def _count_all_images_and_variants(client: GraphQLClient) -> tuple[int, int, int]:
-    """Count total images and variants across all products in the store."""
-    total_images = 0
-    total_with_images = 0
+async def _count_real_store_data(client: GraphQLClient) -> dict:
+    """Count real variants and images by paginating through all products."""
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+
     total_products = 0
+    total_variants = 0
+    total_images = 0
+    products_with_images = 0
     cursor = None
 
-    FULL_COUNT_QUERY = """
+    REAL_COUNT_QUERY = """
     query($cursor: String) {
-      products(first: 250, after: $cursor) {
+      products(first: 100, after: $cursor) {
         pageInfo { hasNextPage endCursor }
         edges {
           node {
+            variants(first: 100) { edges { node { id } } }
             images(first: 100) { edges { node { id } } }
           }
         }
@@ -95,48 +99,73 @@ async def _count_all_images_and_variants(client: GraphQLClient) -> tuple[int, in
     }
     """
 
-    while True:
-        try:
-            result = await client.execute(FULL_COUNT_QUERY, {"cursor": cursor})
-        except Exception:
-            break
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]Counting store data..."),
+        BarColumn(bar_width=30),
+        TextColumn("({task.completed} products)"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Counting...", total=None)
 
-        data = result.get("data", {}).get("products", {})
-        edges = data.get("edges", [])
-        if not edges:
-            break
+        while True:
+            try:
+                result = await client.execute(REAL_COUNT_QUERY, {"cursor": cursor})
+            except Exception:
+                break
 
-        for edge in edges:
-            total_products += 1
-            n_images = len(edge["node"].get("images", {}).get("edges", []))
-            total_images += n_images
-            if n_images > 0:
-                total_with_images += 1
+            data = result.get("data", {}).get("products", {})
+            edges = data.get("edges", [])
+            if not edges:
+                break
 
-        page_info = data.get("pageInfo", {})
-        if not page_info.get("hasNextPage"):
-            break
-        cursor = page_info.get("endCursor")
-        if not cursor:
-            break
+            for edge in edges:
+                total_products += 1
+                n_variants = len(edge["node"].get("variants", {}).get("edges", []))
+                n_images = len(edge["node"].get("images", {}).get("edges", []))
+                total_variants += n_variants
+                total_images += n_images
+                if n_images > 0:
+                    products_with_images += 1
 
-        if total_products % 2000 == 0:
-            console.print(f"  [dim]Counted images for {total_products} products...[/dim]")
+            progress.update(task, completed=total_products)
 
-    return total_images, total_with_images, total_products
+            page_info = data.get("pageInfo", {})
+            if not page_info.get("hasNextPage"):
+                break
+            cursor = page_info.get("endCursor")
+            if not cursor:
+                break
+
+    return {
+        "products": total_products,
+        "variants": total_variants,
+        "images": total_images,
+        "products_with_images": products_with_images,
+    }
 
 
 async def run():
     console.print("\n[bold green]═══ VALIDAÇÃO: Local vs Loja de Origem ═══[/bold green]\n")
 
-    console.print("[bold cyan]Fetching store counts...[/bold cyan]")
+    console.print("[bold cyan]Fetching real store counts (product by product)...[/bold cyan]")
     async with GraphQLClient(SOURCE, MAX_CONCURRENT) as client:
-        store_products = await _get_count(client, PRODUCTS_COUNT_QUERY, "productsCount")
-        store_variants = await _get_count(client, VARIANTS_COUNT_QUERY, "productVariantsCount")
         store_collections = await _get_count(client, COLLECTIONS_COUNT_QUERY, "collectionsCount")
 
-        console.print("[dim]Counting images in store (this may take a few minutes)...[/dim]")
-        store_images, store_with_images, _ = await _count_all_images_and_variants(client)
+        api_products = await _get_count(client, PRODUCTS_COUNT_QUERY, "productsCount")
+        api_variants = await _get_count(client, VARIANTS_COUNT_QUERY, "productVariantsCount")
+        console.print(f"  [dim]API productsCount: {api_products} | API productVariantsCount: {api_variants}[/dim]")
+
+        real_counts = await _count_real_store_data(client)
+        store_products = real_counts["products"]
+        store_variants = real_counts["variants"]
+        store_images = real_counts["images"]
+        store_with_images = real_counts["products_with_images"]
+
+        if isinstance(api_variants, int) and api_variants != store_variants:
+            console.print(f"  [yellow]⚠ productVariantsCount ({api_variants:,}) differs from real count ({store_variants:,})[/yellow]")
+            console.print(f"  [yellow]  Using real count (sum of variants per product) for validation.[/yellow]")
 
     products_base = _load("produtos_base.json")
     meta_seo = _load("produtos_meta_seo.json")
