@@ -373,7 +373,7 @@ async def create_collections(client: GraphQLClient):
                 "description": coll["seo"].get("description"),
             }
 
-        if coll.get("image", {}).get("url"):
+        if (coll.get("image") or {}).get("url"):
             coll_input["image"] = {
                 "src": coll["image"]["url"],
                 "altText": coll["image"].get("altText", ""),
@@ -576,7 +576,7 @@ async def inject_inventory(client: GraphQLClient, limit: int | None = 50):
     console.print(f"\n[bold cyan]Step 5: Injecting Inventory{label}...[/bold cyan]")
 
     result = await client.execute(GET_LOCATIONS, {})
-    locations = [e["node"] for e in result.get("data", {}).get("locations", {}).get("edges", [])]
+    locations = [e["node"] for e in ((result.get("data") or {}).get("locations") or {}).get("edges", [])]
     if not locations:
         console.print("  [red]No locations found in destination store![/red]")
         return
