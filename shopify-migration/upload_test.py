@@ -469,8 +469,6 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                     "price": v.get("price"),
                     "compareAtPrice": v.get("compareAtPrice"),
                     "barcode": v.get("barcode"),
-                    "weight": v.get("weight"),
-                    "weightUnit": v.get("weightUnit"),
                     "optionValues": [
                         {"name": opt["value"], "optionName": opt["name"]}
                         for opt in v.get("selectedOptions", [])
