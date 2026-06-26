@@ -106,16 +106,20 @@ query getOrders($first: Int!, $cursor: String) {
             }
           }
         }
-        shippingLines {
-          title
-          code
-          source
-          originalPriceSet { shopMoney { amount currencyCode } }
-          discountedPriceSet { shopMoney { amount currencyCode } }
-          taxLines {
-            title
-            rate
-            priceSet { shopMoney { amount currencyCode } }
+        shippingLines(first: 10) {
+          edges {
+            node {
+              title
+              code
+              source
+              originalPriceSet { shopMoney { amount currencyCode } }
+              discountedPriceSet { shopMoney { amount currencyCode } }
+              taxLines {
+                title
+                rate
+                priceSet { shopMoney { amount currencyCode } }
+              }
+            }
           }
         }
         taxLines {
@@ -229,6 +233,9 @@ async def extract_orders(client):
             node = edge["node"]
             node["lineItems"] = [
                 e["node"] for e in (node.get("lineItems") or {}).get("edges", [])
+            ]
+            node["shippingLines"] = [
+                e["node"] for e in (node.get("shippingLines") or {}).get("edges", [])
             ]
             node["discountApplications"] = [
                 e["node"] for e in (node.get("discountApplications") or {}).get("edges", [])
