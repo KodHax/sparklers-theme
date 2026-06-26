@@ -309,9 +309,17 @@ async def _paginate_endcursor(
                 await asyncio.sleep(wait)
                 continue
 
+            if data.get("errors"):
+                console.print(f"\n  [red]API errors: {str(data['errors'])[:500]}[/red]")
+
             node = data.get("data", {})
             for key in path:
                 node = node.get(key, {})
+
+            if not node:
+                console.print(f"\n  [red]Resposta vazia da API. Path: {path}[/red]")
+                console.print(f"  [dim]Response keys: {list(data.get('data', {}).keys()) if data.get('data') else 'NO DATA'}[/dim]")
+                break
 
             edges = node.get("edges", [])
             if not edges:
@@ -800,9 +808,42 @@ def _print_extraction_report():
     console.print(f"\n  [dim]Para validar contra a loja: python validate_extraction.py[/dim]")
 
 
+async def _validate_connection(client: GraphQLClient):
+    """Test API connection before starting extraction."""
+    console.print("[bold cyan]Validando conexão com a loja de origem...[/bold cyan]")
+    console.print(f"  URL: {SOURCE.shop_url}")
+    console.print(f"  GraphQL: {SOURCE.graphql_url}")
+    console.print(f"  Token: {'***' + SOURCE.access_token[-4:] if SOURCE.access_token else '[red]NÃO CONFIGURADO[/red]'}")
+
+    if not SOURCE.shop_url:
+        console.print("[bold red]ERRO: SOURCE_SHOP_URL não está definido no .env[/bold red]")
+        return False
+    if not SOURCE.access_token:
+        console.print("[bold red]ERRO: Sem token de acesso. Configura SOURCE_ACCESS_TOKEN ou SOURCE_CLIENT_ID+SECRET no .env[/bold red]")
+        return False
+
+    try:
+        result = await client.execute("query { shop { name myshopifyDomain } }", {})
+        errors = result.get("errors", [])
+        if errors:
+            for err in errors:
+                console.print(f"  [bold red]API Error: {err.get('message', err)}[/bold red]")
+            return False
+        shop = result.get("data", {}).get("shop", {})
+        console.print(f"  [green]Conectado: {shop.get('name')} ({shop.get('myshopifyDomain')})[/green]")
+        return True
+    except Exception as e:
+        console.print(f"  [bold red]FALHA na conexão: {e}[/bold red]")
+        console.print(f"  [yellow]Verifica se o .env tem as credenciais corretas da loja de ORIGEM.[/yellow]")
+        return False
+
+
 async def run(command: str = "all"):
     console.print("\n[bold green]═══ EXTRAÇÃO ═══[/bold green]")
     async with GraphQLClient(SOURCE, MAX_CONCURRENT) as client:
+        if not await _validate_connection(client):
+            console.print("\n[bold red]Extração cancelada: conexão inválida.[/bold red]")
+            return
         if command in ("all", "defs"):
             await extract_metafield_definitions(client)
         if command in ("all", "base"):

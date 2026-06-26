@@ -611,6 +611,20 @@ async def run():
 
     try:
         async with GraphQLClient(DEST, MAX_CONCURRENT) as client:
+            console.print(f"[bold cyan]Validando conexão com loja destino...[/bold cyan]")
+            console.print(f"  URL: {DEST.shop_url}")
+            if not DEST.shop_url:
+                console.print("[bold red]ERRO: DEST_SHOP_URL não definido no .env[/bold red]")
+                return
+            try:
+                test = await client.execute("query { shop { name } }", {})
+                if test.get("errors"):
+                    console.print(f"  [bold red]API Error: {test['errors']}[/bold red]")
+                    return
+                console.print(f"  [green]Conectado: {test['data']['shop']['name']}[/green]")
+            except Exception as e:
+                console.print(f"  [bold red]FALHA na conexão: {e}[/bold red]")
+                return
             if command in ("all", "defs"):
                 await create_metafield_definitions(client)
             if command in ("all", "metaobjects"):
