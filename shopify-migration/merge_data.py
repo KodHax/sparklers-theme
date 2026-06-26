@@ -106,6 +106,9 @@ def run():
     console.print(f"  metaobject_definitions.json:  {len(mo_definitions) if mo_definitions else 0} definitions")
     console.print(f"  metaobjects.json:             {len(metaobjects) if metaobjects else 0} entries")
 
+    inventory = _load("inventory_levels.json")
+    console.print(f"  inventory_levels.json:         {len(inventory) if inventory else 0} items")
+
     mo_index = _build_metaobject_index(metaobjects) if metaobjects else {}
 
     meta_index = {}
@@ -174,7 +177,7 @@ def run():
             measurement = inv_item.get("measurement", {}) or {}
             weight = measurement.get("weight", {}) or {}
 
-            entry["variants"].append({
+            variant_entry = {
                 "id": v.get("id"),
                 "title": v.get("title"),
                 "price": v.get("price"),
@@ -186,7 +189,14 @@ def run():
                 "selectedOptions": v.get("selectedOptions", []),
                 "inventoryItemId": inv_item.get("id"),
                 "tracked": inv_item.get("tracked", False),
-            })
+            }
+
+            if inventory and inv_item.get("id"):
+                levels = inventory.get(inv_item["id"], [])
+                if levels:
+                    variant_entry["inventoryLevels"] = levels
+
+            entry["variants"].append(variant_entry)
 
         merged.append(entry)
 

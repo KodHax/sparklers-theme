@@ -10,6 +10,7 @@ Uso:
   python extract_steps.py base      # Só Query 1
   python extract_steps.py colecoes  # Só Query 2
   python extract_steps.py meta      # Só Query 3
+  python extract_steps.py inventory # Só Query 4 (inventory levels)
 """
 import asyncio
 import json
@@ -189,6 +190,30 @@ query($type: String!, $cursor: String) {
               __typename
               id
               url
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+# ─── QUERY 4: Inventory Levels ───
+
+INVENTORY_ITEMS_QUERY = """
+query($inventoryItemIds: [ID!]!) {
+  nodes(ids: $inventoryItemIds) {
+    ... on InventoryItem {
+      id
+      tracked
+      inventoryLevels(first: 10) {
+        edges {
+          node {
+            location { id name }
+            quantities(names: ["available", "on_hand"]) {
+              name
+              quantity
             }
           }
         }
@@ -515,6 +540,77 @@ async def extract_metaobjects(client: GraphQLClient):
     return definitions, all_entries
 
 
+async def extract_inventory(client: GraphQLClient):
+    console.print("\n[bold cyan]Query 4: Inventory Levels...[/bold cyan]")
+    from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+
+    products_path = os.path.join(DATA_DIR, "produtos_base.json")
+    if not os.path.exists(products_path):
+        console.print("  [red]produtos_base.json não encontrado. Corre 'base' primeiro.[/red]")
+        return
+
+    with open(products_path, "r", encoding="utf-8") as f:
+        products = json.load(f)
+
+    inventory_item_ids = []
+    for p in products:
+        for edge in p.get("variants", {}).get("edges", []):
+            inv_id = edge["node"].get("inventoryItem", {}).get("id")
+            if inv_id:
+                inventory_item_ids.append(inv_id)
+
+    console.print(f"  Total inventory items to fetch: {len(inventory_item_ids):,}")
+
+    inventory_data = {}
+    batch_size = 50
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]Fetching inventory..."),
+        BarColumn(bar_width=40),
+        TextColumn("({task.completed}/{task.total})"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Inventory...", total=len(inventory_item_ids))
+
+        for i in range(0, len(inventory_item_ids), batch_size):
+            batch = inventory_item_ids[i:i + batch_size]
+            try:
+                result = await client.execute(INVENTORY_ITEMS_QUERY, {"inventoryItemIds": batch})
+                nodes = result.get("data", {}).get("nodes", [])
+                for node in nodes:
+                    if not node:
+                        continue
+                    item_id = node.get("id")
+                    levels = []
+                    for edge in node.get("inventoryLevels", {}).get("edges", []):
+                        lvl = edge["node"]
+                        levels.append({
+                            "locationId": lvl["location"]["id"],
+                            "locationName": lvl["location"]["name"],
+                            "quantities": {q["name"]: q["quantity"] for q in lvl.get("quantities", [])},
+                        })
+                    inventory_data[item_id] = levels
+            except Exception as e:
+                console.print(f"\n  [yellow]Error at batch {i}: {e}[/yellow]")
+
+            progress.update(task, completed=min(i + batch_size, len(inventory_item_ids)))
+
+    _save("inventory_levels.json", inventory_data)
+    console.print(f"  Total items with inventory: {len(inventory_data):,}")
+
+    total_on_hand = sum(
+        q.get("on_hand", 0)
+        for levels in inventory_data.values()
+        for lvl in levels
+        for q in [lvl["quantities"]]
+    )
+    console.print(f"  Total on-hand stock: {total_on_hand:,}")
+
+    return inventory_data
+
+
 def _print_extraction_report():
     """Print detailed stats after extraction completes."""
     from rich.table import Table
@@ -717,6 +813,8 @@ async def run(command: str = "all"):
             await extract_products_meta_seo(client)
         if command in ("all", "metaobjects"):
             await extract_metaobjects(client)
+        if command in ("all", "inventory"):
+            await extract_inventory(client)
 
     _print_extraction_report()
     console.print("\n[bold green]═══ EXTRAÇÃO COMPLETA ═══[/bold green]")

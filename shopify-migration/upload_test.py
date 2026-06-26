@@ -16,6 +16,7 @@ Uso:
   python upload_test.py colecoes     # Só criar coleções
   python upload_test.py produtos     # Só upload de produtos
   python upload_test.py associar     # Só associar coleções
+  python upload_test.py inventario  # Só injetar inventário
 """
 import asyncio
 import json
@@ -59,7 +60,7 @@ mutation productCreate($input: ProductInput!, $media: [CreateMediaInput!]) {
       id
       handle
       variants(first: 100) {
-        edges { node { id sku } }
+        edges { node { id sku inventoryItem { id } } }
       }
     }
     userErrors { field message }
@@ -88,6 +89,19 @@ CREATE_METAOBJECT = """
 mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
   metaobjectCreate(metaobject: $metaobject) {
     metaobject { id handle type }
+    userErrors { field message }
+  }
+}
+"""
+
+GET_LOCATIONS = """
+query { locations(first: 5) { edges { node { id name } } } }
+"""
+
+INVENTORY_SET_ON_HAND = """
+mutation inventorySetOnHandQuantities($input: InventorySetOnHandQuantitiesInput!) {
+  inventorySetOnHandQuantities(input: $input) {
+    inventoryAdjustmentGroup { reason }
     userErrors { field message }
   }
 }
@@ -394,6 +408,15 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
             else:
                 new_product = result["data"]["productCreate"]["product"]
                 state.mark_done(handle, new_product["id"])
+                new_variants = [e["node"] for e in new_product.get("variants", {}).get("edges", [])]
+                variant_state = StateManager("dest_variant_inventory")
+                for idx, nv in enumerate(new_variants):
+                    inv_item_id = nv.get("inventoryItem", {}).get("id")
+                    if inv_item_id and idx < len(product.get("variants", [])):
+                        old_variant = product["variants"][idx]
+                        old_inv_id = old_variant.get("inventoryItemId", "")
+                        if old_inv_id:
+                            variant_state.mark_done(old_inv_id, inv_item_id)
                 logger.success(handle, f"-> {new_product['id']}")
         except Exception as e:
             logger.error(handle, "EXCEPTION", str(e))
@@ -449,6 +472,84 @@ async def associate_collections(client: GraphQLClient, limit: int | None = 50):
     logger.close()
 
 
+async def inject_inventory(client: GraphQLClient, limit: int | None = 50):
+    label = f" (limit: {limit})" if limit else " (ALL)"
+    console.print(f"\n[bold cyan]Step 5: Injecting Inventory{label}...[/bold cyan]")
+
+    result = await client.execute(GET_LOCATIONS, {})
+    locations = [e["node"] for e in result.get("data", {}).get("locations", {}).get("edges", [])]
+    if not locations:
+        console.print("  [red]No locations found in destination store![/red]")
+        return
+
+    location_id = locations[0]["id"]
+    console.print(f"  Location: {locations[0]['name']} ({location_id})")
+
+    products = _load("migracao_pronta.json", READY_DIR)
+    if limit:
+        products = products[:limit]
+
+    variant_state = StateManager("dest_variant_inventory")
+    logger = MigrationLogger("upload_inventory")
+
+    quantities_to_set = []
+    for product in products:
+        for v in product.get("variants", []):
+            old_inv_id = v.get("inventoryItemId", "")
+            new_inv_id = variant_state.get_new_id(old_inv_id)
+            if not new_inv_id:
+                continue
+
+            on_hand = 0
+            for lvl in v.get("inventoryLevels", []):
+                on_hand += lvl.get("quantities", {}).get("on_hand", 0)
+
+            if on_hand > 0:
+                quantities_to_set.append({
+                    "inventoryItemId": new_inv_id,
+                    "locationId": location_id,
+                    "quantity": on_hand,
+                    "_sku": v.get("sku", ""),
+                })
+
+    console.print(f"  Variants with stock to set: {len(quantities_to_set)}")
+
+    batch_size = 50
+    for i in range(0, len(quantities_to_set), batch_size):
+        batch = quantities_to_set[i:i + batch_size]
+        set_quantities = [
+            {
+                "inventoryItemId": q["inventoryItemId"],
+                "locationId": q["locationId"],
+                "quantity": q["quantity"],
+            }
+            for q in batch
+        ]
+
+        try:
+            result = await client.execute(INVENTORY_SET_ON_HAND, {
+                "input": {
+                    "reason": "correction",
+                    "setQuantities": set_quantities,
+                }
+            })
+            errors = result.get("data", {}).get("inventorySetOnHandQuantities", {}).get("userErrors", [])
+            if errors:
+                err_msg = "; ".join(e["message"] for e in errors)
+                logger.error(f"batch_{i}", "USER_ERROR", err_msg)
+            else:
+                for q in batch:
+                    logger.success(q["_sku"] or q["inventoryItemId"], f"qty={q['quantity']}")
+        except Exception as e:
+            logger.error(f"batch_{i}", "EXCEPTION", str(e))
+
+        if (i + batch_size) % 200 == 0:
+            console.print(f"  Progress: {min(i + batch_size, len(quantities_to_set))}/{len(quantities_to_set)}")
+
+    console.print(f"  {logger.summary()}")
+    logger.close()
+
+
 async def run():
     args = sys.argv[1:]
     command = args[0] if args else "all"
@@ -474,6 +575,8 @@ async def run():
             await upload_products(client, limit)
         if command in ("all", "associar"):
             await associate_collections(client, limit)
+        if command in ("all", "inventario"):
+            await inject_inventory(client, limit)
 
     console.print(f"\n[bold green]═══ UPLOAD COMPLETO ═══[/bold green]")
 
