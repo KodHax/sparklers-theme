@@ -54,8 +54,8 @@ mutation($input: CollectionInput!) {
 """
 
 CREATE_PRODUCT = """
-mutation productCreate($input: ProductInput!, $media: [CreateMediaInput!]) {
-  productCreate(input: $input, media: $media) {
+mutation productSet($input: ProductSetInput!) {
+  productSet(input: $input) {
     product {
       id
       handle
@@ -456,7 +456,10 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
             }
 
         if product.get("options"):
-            product_input["options"] = [opt["name"] for opt in product["options"]]
+            product_input["productOptions"] = [
+                {"name": opt["name"], "values": [{"name": val} for val in opt.get("values", [])]}
+                for opt in product["options"]
+            ]
 
         if product.get("variants"):
             product_input["variants"] = []
@@ -468,7 +471,10 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                     "barcode": v.get("barcode"),
                     "weight": v.get("weight"),
                     "weightUnit": v.get("weightUnit"),
-                    "options": [opt["value"] for opt in v.get("selectedOptions", [])],
+                    "optionValues": [
+                        {"name": opt["value"], "optionName": opt["name"]}
+                        for opt in v.get("selectedOptions", [])
+                    ],
                 }
                 product_input["variants"].append(var_input)
 
@@ -493,13 +499,10 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                 media_input.append(media_item)
 
         try:
-            result = await client.execute(CREATE_PRODUCT, {
-                "input": product_input,
-                "media": media_input if media_input else None,
-            })
-            _check_api_errors(result, f"productCreate [{handle}]")
+            result = await client.execute(CREATE_PRODUCT, {"input": product_input})
+            _check_api_errors(result, f"productSet [{handle}]")
             data = result.get("data") or {}
-            mutation_result = data.get("productCreate") or {}
+            mutation_result = data.get("productSet") or {}
             errors = mutation_result.get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
