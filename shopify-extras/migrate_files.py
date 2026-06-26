@@ -172,12 +172,13 @@ async def upload_files(client, limit=None):
 
     console.print("  [cyan]Fetching existing files from destination to check duplicates...[/cyan]")
     dest_files = await _fetch_all_files(client, label="[DEST] ")
-    existing_filenames = set()
+    existing_names = set()
     for f in dest_files:
         fn = f.get("filename")
         if fn:
-            existing_filenames.add(fn.lower())
-    console.print(f"  [dim]Found {len(existing_filenames)} existing files in destination[/dim]")
+            name_no_ext = fn.rsplit(".", 1)[0].lower()
+            existing_names.add(name_no_ext)
+    console.print(f"  [dim]Found {len(existing_names)} existing files in destination[/dim]")
 
     logger = MigrationLogger("upload_files")
     state = StateManager("dest_files")
@@ -194,7 +195,7 @@ async def upload_files(client, limit=None):
                 continue
 
             filename = file.get("filename", "")
-            if filename and filename.lower() in existing_filenames:
+            if filename and filename.rsplit(".", 1)[0].lower() in existing_names:
                 skipped_duplicates += 1
                 state.mark_done(old_id, "duplicate")
                 continue
@@ -236,7 +237,7 @@ async def upload_files(client, limit=None):
                         state.mark_done(old_id, new_files[idx]["id"])
                         logger.success(old_id, f"{fn} -> {new_files[idx]['id']}")
                         if fn:
-                            existing_filenames.add(fn.lower())
+                            existing_names.add(fn.rsplit(".", 1)[0].lower())
                     else:
                         logger.error(old_id, "NO_DATA", "No file returned")
         except Exception as e:
