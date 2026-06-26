@@ -449,6 +449,9 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
             "templateSuffix": product.get("templateSuffix"),
         }
 
+        if product.get("category"):
+            product_input["category"] = product["category"]["id"]
+
         if product.get("seo"):
             product_input["seo"] = {
                 "title": product["seo"].get("title"),
@@ -495,6 +498,12 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                 if img.get("altText"):
                     media_item["alt"] = img["altText"]
                 media_input.append(media_item)
+
+        if media_input:
+            product_input["files"] = [
+                {"originalSource": m["originalSource"], "contentType": "IMAGE", "alt": m.get("alt", "")}
+                for m in media_input
+            ]
 
         try:
             result = await client.execute(CREATE_PRODUCT, {"input": product_input})

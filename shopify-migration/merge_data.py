@@ -148,6 +148,7 @@ def run():
             "status": product.get("status"),
             "tags": product.get("tags", []),
             "templateSuffix": product.get("templateSuffix"),
+            "category": product.get("category"),
             "options": product.get("options", []),
             "images": [
                 {"url": img.get("url"), "altText": img.get("altText", "")}
@@ -189,6 +190,7 @@ def run():
                 "selectedOptions": v.get("selectedOptions", []),
                 "inventoryItemId": inv_item.get("id"),
                 "tracked": inv_item.get("tracked", False),
+                "unitCost": (inv_item.get("unitCost") or {}).get("amount"),
             }
 
             if inventory and inv_item.get("id"):

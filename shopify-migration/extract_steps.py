@@ -41,6 +41,7 @@ query getProductsBase($first: Int!, $cursor: String) {
         status
         tags
         templateSuffix
+        category { id }
         images(first: 10) {
           edges { node { url altText } }
         }
@@ -57,6 +58,7 @@ query getProductsBase($first: Int!, $cursor: String) {
               inventoryItem {
                 id
                 tracked
+                unitCost { amount currencyCode }
                 measurement { weight { value unit } }
               }
             }
