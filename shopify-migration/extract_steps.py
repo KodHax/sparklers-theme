@@ -126,6 +126,78 @@ query getProductsMetaAndSEO($first: Int!, $cursor: String) {
 }
 """
 
+# ─── METAOBJECT DEFINITIONS & ENTRIES ───
+
+METAOBJECT_DEFINITIONS_QUERY = """
+query($cursor: String) {
+  metaobjectDefinitions(first: 50, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    edges {
+      node {
+        id
+        name
+        type
+        fieldDefinitions {
+          key
+          name
+          type { name }
+          required
+          validations { name value }
+        }
+      }
+    }
+  }
+}
+"""
+
+METAOBJECTS_BY_TYPE_QUERY = """
+query($type: String!, $cursor: String) {
+  metaobjects(type: $type, first: 50, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    edges {
+      node {
+        id
+        handle
+        type
+        fields {
+          key
+          value
+          type
+          reference {
+            ... on MediaImage {
+              __typename
+              id
+              image { url altText }
+            }
+            ... on Metaobject {
+              __typename
+              id
+              handle
+              type
+            }
+            ... on Product {
+              __typename
+              id
+              handle
+            }
+            ... on Collection {
+              __typename
+              id
+              handle
+            }
+            ... on GenericFile {
+              __typename
+              id
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
 # ─── METAFIELD DEFINITIONS ───
 
 METAFIELD_DEFINITIONS_QUERY = """
@@ -399,6 +471,50 @@ async def extract_metafield_definitions(client: GraphQLClient):
     return all_defs
 
 
+async def extract_metaobjects(client: GraphQLClient):
+    console.print("\n[bold cyan]Metaobject Definitions & Entries...[/bold cyan]")
+
+    definitions = await _paginate_endcursor(
+        client, METAOBJECT_DEFINITIONS_QUERY, ["metaobjectDefinitions"],
+        first=50, total_estimate=50,
+    )
+    console.print(f"  Definitions found: {len(definitions)}")
+    _save("metaobject_definitions.json", definitions)
+
+    all_entries = []
+    for defn in definitions:
+        obj_type = defn.get("type", "")
+        console.print(f"  [dim]Fetching entries for type '{obj_type}'...[/dim]")
+        entries = []
+        cursor = None
+
+        while True:
+            try:
+                result = await client.execute(METAOBJECTS_BY_TYPE_QUERY, {
+                    "type": obj_type, "first": 50, "cursor": cursor,
+                })
+            except Exception as e:
+                console.print(f"    [red]Error fetching {obj_type}: {e}[/red]")
+                break
+
+            node = result.get("data", {}).get("metaobjects", {})
+            edges = node.get("edges", [])
+            if not edges:
+                break
+            entries.extend([e["node"] for e in edges])
+            page_info = node.get("pageInfo", {})
+            if not page_info.get("hasNextPage"):
+                break
+            cursor = page_info.get("endCursor")
+
+        console.print(f"    {obj_type}: {len(entries)} entries")
+        all_entries.extend(entries)
+
+    _save("metaobjects.json", all_entries)
+    console.print(f"  Total metaobject entries: {len(all_entries)}")
+    return definitions, all_entries
+
+
 def _print_extraction_report():
     """Print detailed stats after extraction completes."""
     from rich.table import Table
@@ -520,6 +636,27 @@ def _print_extraction_report():
     summary.add_row("  De Produto", f"{defs_product}")
     summary.add_row("  De Variante", f"{defs_variant}")
 
+    mo_defs_path = os.path.join(DATA_DIR, "metaobject_definitions.json")
+    mo_entries_path = os.path.join(DATA_DIR, "metaobjects.json")
+    mo_defs = []
+    mo_entries = []
+    if os.path.exists(mo_defs_path):
+        with open(mo_defs_path, "r", encoding="utf-8") as f:
+            mo_defs = json.load(f)
+    if os.path.exists(mo_entries_path):
+        with open(mo_entries_path, "r", encoding="utf-8") as f:
+            mo_entries = json.load(f)
+
+    if mo_defs or mo_entries:
+        from collections import Counter as MoCounter
+        mo_type_counts = MoCounter(e.get("type", "?") for e in mo_entries)
+
+        summary.add_row("[bold]── METAOBJECTS ──", "")
+        summary.add_row("Metaobject Definitions", f"{len(mo_defs)}")
+        summary.add_row("Total Metaobject Entries", f"{len(mo_entries):,}")
+        for mo_type, count in mo_type_counts.most_common():
+            summary.add_row(f"  {mo_type}", f"{count:,}")
+
     console.print(summary)
 
     dist_table = Table(title="Distribuição de Variantes por Produto", title_style="bold blue")
@@ -578,6 +715,8 @@ async def run(command: str = "all"):
             await extract_collections_map(client)
         if command in ("all", "meta"):
             await extract_products_meta_seo(client)
+        if command in ("all", "metaobjects"):
+            await extract_metaobjects(client)
 
     _print_extraction_report()
     console.print("\n[bold green]═══ EXTRAÇÃO COMPLETA ═══[/bold green]")

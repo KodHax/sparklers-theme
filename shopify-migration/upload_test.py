@@ -12,6 +12,7 @@ Uso:
   python upload_test.py --limit 10   # Testar com 10 produtos
   python upload_test.py --full       # Upload de TODOS os produtos
   python upload_test.py defs         # Só criar metafield definitions
+  python upload_test.py metaobjects  # Só criar metaobject definitions + entries
   python upload_test.py colecoes     # Só criar coleções
   python upload_test.py produtos     # Só upload de produtos
   python upload_test.py associar     # Só associar coleções
@@ -74,6 +75,24 @@ mutation($id: ID!, $productIds: [ID!]!) {
 }
 """
 
+CREATE_METAOBJECT_DEF = """
+mutation metaobjectDefinitionCreate($definition: MetaobjectDefinitionCreateInput!) {
+  metaobjectDefinitionCreate(definition: $definition) {
+    metaobjectDefinition { id type name }
+    userErrors { field message }
+  }
+}
+"""
+
+CREATE_METAOBJECT = """
+mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
+  metaobjectCreate(metaobject: $metaobject) {
+    metaobject { id handle type }
+    userErrors { field message }
+  }
+}
+"""
+
 
 def _load(filename: str, directory: str = DATA_DIR):
     path = os.path.join(directory, filename)
@@ -125,6 +144,112 @@ async def create_metafield_definitions(client: GraphQLClient):
             logger.error(key, "EXCEPTION", str(e))
 
     console.print(f"  {logger.summary()}")
+    logger.close()
+
+
+async def create_metaobjects(client: GraphQLClient):
+    console.print("\n[bold cyan]Step 1b: Creating Metaobject Definitions & Entries...[/bold cyan]")
+
+    mo_definitions = _load("metaobject_definitions.json")
+    mo_entries = _load("metaobjects.json")
+
+    if not mo_definitions:
+        console.print("  [yellow]No metaobject_definitions.json found, skipping.[/yellow]")
+        return
+
+    logger = MigrationLogger("upload_metaobjects")
+    state = StateManager("dest_metaobjects")
+
+    for defn in mo_definitions:
+        obj_type = defn.get("type", "")
+        key = f"def:{obj_type}"
+        if state.is_done(key):
+            continue
+
+        field_defs = []
+        for fd in defn.get("fieldDefinitions", []):
+            field_def = {
+                "key": fd["key"],
+                "name": fd.get("name", fd["key"]),
+                "type": fd["type"]["name"],
+            }
+            if fd.get("required"):
+                field_def["required"] = True
+            if fd.get("validations"):
+                field_def["validations"] = [
+                    {"name": v["name"], "value": v["value"]}
+                    for v in fd["validations"]
+                ]
+            field_defs.append(field_def)
+
+        try:
+            result = await client.execute(CREATE_METAOBJECT_DEF, {
+                "definition": {
+                    "type": obj_type,
+                    "name": defn.get("name", obj_type),
+                    "fieldDefinitions": field_defs,
+                }
+            })
+            errors = result.get("data", {}).get("metaobjectDefinitionCreate", {}).get("userErrors", [])
+            if errors:
+                err_msg = "; ".join(e["message"] for e in errors)
+                if "already exists" in err_msg.lower() or "taken" in err_msg.lower():
+                    state.mark_done(key, "exists")
+                    logger.success(key, "Already exists")
+                else:
+                    logger.error(key, "USER_ERROR", err_msg)
+            else:
+                new_id = result["data"]["metaobjectDefinitionCreate"]["metaobjectDefinition"]["id"]
+                state.mark_done(key, new_id)
+                logger.success(key, f"-> {new_id}")
+        except Exception as e:
+            logger.error(key, "EXCEPTION", str(e))
+
+    console.print(f"  Definitions: {logger.summary()}")
+
+    if not mo_entries:
+        console.print("  [yellow]No metaobjects.json found, skipping entries.[/yellow]")
+        logger.close()
+        return
+
+    for entry in mo_entries:
+        old_id = entry.get("id", "")
+        if state.is_done(old_id):
+            continue
+
+        fields = []
+        for field in entry.get("fields", []):
+            value = field.get("value")
+            if value is not None and value != "":
+                fields.append({
+                    "key": field["key"],
+                    "value": value,
+                })
+
+        try:
+            result = await client.execute(CREATE_METAOBJECT, {
+                "metaobject": {
+                    "type": entry.get("type", ""),
+                    "handle": entry.get("handle"),
+                    "fields": fields,
+                }
+            })
+            errors = result.get("data", {}).get("metaobjectCreate", {}).get("userErrors", [])
+            if errors:
+                err_msg = "; ".join(e["message"] for e in errors)
+                if "already exists" in err_msg.lower() or "taken" in err_msg.lower():
+                    state.mark_done(old_id, "exists")
+                    logger.success(old_id, "Already exists")
+                else:
+                    logger.error(old_id, "USER_ERROR", err_msg)
+            else:
+                new_mo = result["data"]["metaobjectCreate"]["metaobject"]
+                state.mark_done(old_id, new_mo["id"])
+                logger.success(old_id, f"-> {new_mo['id']}")
+        except Exception as e:
+            logger.error(old_id, "EXCEPTION", str(e))
+
+    console.print(f"  Entries: {logger.summary()}")
     logger.close()
 
 
@@ -341,6 +466,8 @@ async def run():
     async with GraphQLClient(DEST, MAX_CONCURRENT) as client:
         if command in ("all", "defs"):
             await create_metafield_definitions(client)
+        if command in ("all", "metaobjects"):
+            await create_metaobjects(client)
         if command in ("all", "colecoes"):
             await create_collections(client)
         if command in ("all", "produtos"):
