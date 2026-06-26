@@ -144,8 +144,15 @@ async def create_metafield_definitions(client: GraphQLClient):
     logger = MigrationLogger("upload_metafield_defs")
     state = StateManager("dest_metafield_defs")
 
+    skipped_system = 0
     for d in defs:
         key = f"{d['_ownerType']}:{d['namespace']}.{d['key']}"
+
+        if d["namespace"] == "shopify":
+            skipped_system += 1
+            state.mark_done(key, "system-managed")
+            continue
+
         if state.is_done(key):
             continue
 
@@ -159,15 +166,20 @@ async def create_metafield_definitions(client: GraphQLClient):
         if d.get("description"):
             definition_input["description"] = d["description"]
         if d.get("validations"):
-            definition_input["validations"] = [
+            valid_validations = [
                 {"name": v["name"], "value": v["value"]}
                 for v in d["validations"]
+                if v.get("name") != "metaobject_definition_id"
             ]
+            if valid_validations:
+                definition_input["validations"] = valid_validations
 
         try:
             result = await client.execute(CREATE_METAFIELD_DEF, {"definition": definition_input})
             _check_api_errors(result, f"metafieldDefinitionCreate [{key}]")
-            errors = result.get("data", {}).get("metafieldDefinitionCreate", {}).get("userErrors", [])
+            data = result.get("data") or {}
+            mutation_result = data.get("metafieldDefinitionCreate") or {}
+            errors = mutation_result.get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
                 if "already exists" in err_msg.lower() or "taken" in err_msg.lower():
@@ -176,14 +188,19 @@ async def create_metafield_definitions(client: GraphQLClient):
                 else:
                     logger.error(key, "USER_ERROR", err_msg)
             else:
-                new_id = result["data"]["metafieldDefinitionCreate"]["createdDefinition"]["id"]
-                state.mark_done(key, new_id)
-                logger.success(key)
+                created = mutation_result.get("createdDefinition")
+                if created:
+                    state.mark_done(key, created["id"])
+                    logger.success(key)
+                else:
+                    logger.error(key, "NO_DATA", f"API returned no data: {str(result)[:300]}")
         except AccessDeniedError:
             raise
         except Exception as e:
             logger.error(key, "EXCEPTION", str(e))
 
+    if skipped_system:
+        console.print(f"  [dim]Skipped {skipped_system} system-managed (shopify.*) definitions[/dim]")
     console.print(f"  {logger.summary()}")
     logger.close()
 
@@ -201,9 +218,16 @@ async def create_metaobjects(client: GraphQLClient):
     logger = MigrationLogger("upload_metaobjects")
     state = StateManager("dest_metaobjects")
 
+    skipped_system = 0
     for defn in mo_definitions:
         obj_type = defn.get("type", "")
         key = f"def:{obj_type}"
+
+        if obj_type.startswith("shopify--"):
+            skipped_system += 1
+            state.mark_done(key, "system-managed")
+            continue
+
         if state.is_done(key):
             continue
 
@@ -232,7 +256,9 @@ async def create_metaobjects(client: GraphQLClient):
                 }
             })
             _check_api_errors(result, f"metaobjectDefinitionCreate [{obj_type}]")
-            errors = result.get("data", {}).get("metaobjectDefinitionCreate", {}).get("userErrors", [])
+            data = result.get("data") or {}
+            mutation_result = data.get("metaobjectDefinitionCreate") or {}
+            errors = mutation_result.get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
                 if "already exists" in err_msg.lower() or "taken" in err_msg.lower():
@@ -241,14 +267,19 @@ async def create_metaobjects(client: GraphQLClient):
                 else:
                     logger.error(key, "USER_ERROR", err_msg)
             else:
-                new_id = result["data"]["metaobjectDefinitionCreate"]["metaobjectDefinition"]["id"]
-                state.mark_done(key, new_id)
-                logger.success(key, f"-> {new_id}")
+                new_def = mutation_result.get("metaobjectDefinition")
+                if new_def:
+                    state.mark_done(key, new_def["id"])
+                    logger.success(key, f"-> {new_def['id']}")
+                else:
+                    logger.error(key, "NO_DATA", f"API returned no data: {str(result)[:300]}")
         except AccessDeniedError:
             raise
         except Exception as e:
             logger.error(key, "EXCEPTION", str(e))
 
+    if skipped_system:
+        console.print(f"  [dim]Skipped {skipped_system} system-managed (shopify--*) definitions[/dim]")
     console.print(f"  Definitions: {logger.summary()}")
 
     if not mo_entries:
@@ -256,8 +287,16 @@ async def create_metaobjects(client: GraphQLClient):
         logger.close()
         return
 
+    skipped_entries = 0
     for entry in mo_entries:
         old_id = entry.get("id", "")
+        entry_type = entry.get("type", "")
+
+        if entry_type.startswith("shopify--"):
+            skipped_entries += 1
+            state.mark_done(old_id, "system-managed")
+            continue
+
         if state.is_done(old_id):
             continue
 
@@ -273,13 +312,15 @@ async def create_metaobjects(client: GraphQLClient):
         try:
             result = await client.execute(CREATE_METAOBJECT, {
                 "metaobject": {
-                    "type": entry.get("type", ""),
+                    "type": entry_type,
                     "handle": entry.get("handle"),
                     "fields": fields,
                 }
             })
             _check_api_errors(result, f"metaobjectCreate [{old_id}]")
-            errors = result.get("data", {}).get("metaobjectCreate", {}).get("userErrors", [])
+            data = result.get("data") or {}
+            mutation_result = data.get("metaobjectCreate") or {}
+            errors = mutation_result.get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
                 if "already exists" in err_msg.lower() or "taken" in err_msg.lower():
@@ -288,14 +329,19 @@ async def create_metaobjects(client: GraphQLClient):
                 else:
                     logger.error(old_id, "USER_ERROR", err_msg)
             else:
-                new_mo = result["data"]["metaobjectCreate"]["metaobject"]
-                state.mark_done(old_id, new_mo["id"])
-                logger.success(old_id, f"-> {new_mo['id']}")
+                new_mo = mutation_result.get("metaobject")
+                if new_mo:
+                    state.mark_done(old_id, new_mo["id"])
+                    logger.success(old_id, f"-> {new_mo['id']}")
+                else:
+                    logger.error(old_id, "NO_DATA", f"API returned no data: {str(result)[:300]}")
         except AccessDeniedError:
             raise
         except Exception as e:
             logger.error(old_id, "EXCEPTION", str(e))
 
+    if skipped_entries:
+        console.print(f"  [dim]Skipped {skipped_entries} system-managed (shopify--*) entries[/dim]")
     console.print(f"  Entries: {logger.summary()}")
     logger.close()
 
@@ -345,14 +391,19 @@ async def create_collections(client: GraphQLClient):
         try:
             result = await client.execute(CREATE_COLLECTION, {"input": coll_input})
             _check_api_errors(result, f"collectionCreate [{coll.get('title', old_id)}]")
-            errors = result.get("data", {}).get("collectionCreate", {}).get("userErrors", [])
+            data = result.get("data") or {}
+            mutation_result = data.get("collectionCreate") or {}
+            errors = mutation_result.get("userErrors", [])
             if errors:
                 logger.error(old_id, "USER_ERROR", "; ".join(e["message"] for e in errors))
             else:
-                new_coll = result["data"]["collectionCreate"]["collection"]
-                state.mark_done(old_id, new_coll["id"])
-                state.mark_done(f"handle:{new_coll['handle']}", new_coll["id"])
-                logger.success(old_id, f"-> {new_coll['id']}")
+                new_coll = mutation_result.get("collection")
+                if new_coll:
+                    state.mark_done(old_id, new_coll["id"])
+                    state.mark_done(f"handle:{new_coll['handle']}", new_coll["id"])
+                    logger.success(old_id, f"-> {new_coll['id']}")
+                else:
+                    logger.error(old_id, "NO_DATA", f"API returned no data: {str(result)[:300]}")
         except AccessDeniedError:
             raise
         except Exception as e:
@@ -422,6 +473,7 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                     "type": mf["type"],
                 }
                 for mf in product["metafields"]
+                if mf.get("namespace") != "shopify"
             ]
 
         media_input = []
@@ -438,23 +490,28 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                 "media": media_input if media_input else None,
             })
             _check_api_errors(result, f"productCreate [{handle}]")
-            errors = result.get("data", {}).get("productCreate", {}).get("userErrors", [])
+            data = result.get("data") or {}
+            mutation_result = data.get("productCreate") or {}
+            errors = mutation_result.get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
                 logger.error(handle, "USER_ERROR", err_msg)
             else:
-                new_product = result["data"]["productCreate"]["product"]
-                state.mark_done(handle, new_product["id"])
-                new_variants = [e["node"] for e in new_product.get("variants", {}).get("edges", [])]
-                variant_state = StateManager("dest_variant_inventory")
-                for idx, nv in enumerate(new_variants):
-                    inv_item_id = nv.get("inventoryItem", {}).get("id")
-                    if inv_item_id and idx < len(product.get("variants", [])):
-                        old_variant = product["variants"][idx]
-                        old_inv_id = old_variant.get("inventoryItemId", "")
-                        if old_inv_id:
-                            variant_state.mark_done(old_inv_id, inv_item_id)
-                logger.success(handle, f"-> {new_product['id']}")
+                new_product = mutation_result.get("product")
+                if new_product:
+                    state.mark_done(handle, new_product["id"])
+                    new_variants = [e["node"] for e in new_product.get("variants", {}).get("edges", [])]
+                    variant_state = StateManager("dest_variant_inventory")
+                    for idx, nv in enumerate(new_variants):
+                        inv_item_id = (nv.get("inventoryItem") or {}).get("id")
+                        if inv_item_id and idx < len(product.get("variants", [])):
+                            old_variant = product["variants"][idx]
+                            old_inv_id = old_variant.get("inventoryItemId", "")
+                            if old_inv_id:
+                                variant_state.mark_done(old_inv_id, inv_item_id)
+                    logger.success(handle, f"-> {new_product['id']}")
+                else:
+                    logger.error(handle, "NO_DATA", f"API returned no data: {str(result)[:300]}")
         except AccessDeniedError:
             raise
         except Exception as e:
@@ -500,7 +557,7 @@ async def associate_collections(client: GraphQLClient, limit: int | None = 50):
                     "productIds": batch,
                 })
                 _check_api_errors(result, f"collectionAddProducts [{coll_id}]")
-                errors = result.get("data", {}).get("collectionAddProducts", {}).get("userErrors", [])
+                errors = ((result.get("data") or {}).get("collectionAddProducts") or {}).get("userErrors", [])
                 if errors:
                     logger.error(coll_id, "ASSOC_ERROR", "; ".join(e["message"] for e in errors))
                 else:
@@ -576,7 +633,7 @@ async def inject_inventory(client: GraphQLClient, limit: int | None = 50):
                 }
             })
             _check_api_errors(result, f"inventorySetOnHandQuantities [batch {i}]")
-            errors = result.get("data", {}).get("inventorySetOnHandQuantities", {}).get("userErrors", [])
+            errors = ((result.get("data") or {}).get("inventorySetOnHandQuantities") or {}).get("userErrors", [])
             if errors:
                 err_msg = "; ".join(e["message"] for e in errors)
                 logger.error(f"batch_{i}", "USER_ERROR", err_msg)
