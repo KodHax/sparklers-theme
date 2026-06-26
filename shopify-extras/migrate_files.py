@@ -2,6 +2,7 @@
 """
 Migração de Ficheiros/Imagens entre lojas Shopify via GraphQL Admin API.
 Exporta todos os ficheiros com os nomes originais e importa na loja destino.
+Valida duplicados por filename antes de enviar.
 
 Uso:
   python migrate_files.py extract                      # Extrai lista de ficheiros da loja origem
@@ -94,8 +95,13 @@ def _load(filename):
         return json.load(f)
 
 
-async def extract_files(client):
-    console.print("\n[bold cyan]Extracting Files...[/bold cyan]")
+def _extract_filename(url):
+    if not url:
+        return None
+    return url.split("?")[0].split("/")[-1]
+
+
+async def _fetch_all_files(client, label=""):
     files = []
     cursor = None
     page = 0
@@ -133,26 +139,30 @@ async def extract_files(client):
             else:
                 continue
 
-            if file_entry.get("url"):
-                url = file_entry["url"]
-                filename = url.split("?")[0].split("/")[-1]
-                file_entry["filename"] = filename
-
+            file_entry["filename"] = _extract_filename(file_entry.get("url"))
             files.append(file_entry)
 
         page += 1
-        console.print(f"  Page {page}: {len(files)} files", end="\r")
+        console.print(f"  {label}Page {page}: {len(files)} files", end="\r")
 
         page_info = data.get("pageInfo", {})
         if not page_info.get("hasNextPage"):
             break
         cursor = page_info.get("endCursor")
 
+    console.print()
+    return files
+
+
+async def extract_files(client):
+    console.print("\n[bold cyan]Extracting Files from Source...[/bold cyan]")
+    files = await _fetch_all_files(client, label="[SOURCE] ")
+
     images = sum(1 for f in files if f.get("type") == "IMAGE")
     videos = sum(1 for f in files if f.get("type") == "VIDEO")
     generic = sum(1 for f in files if f.get("type") == "GENERIC")
 
-    console.print(f"\n  Total: {len(files)} (Images: {images}, Videos: {videos}, Generic: {generic})")
+    console.print(f"  Total: {len(files)} (Images: {images}, Videos: {videos}, Generic: {generic})")
     _save("files.json", files)
 
 
@@ -160,21 +170,37 @@ async def upload_files(client, limit=None):
     label = f" (limit: {limit})" if limit else " (ALL)"
     console.print(f"\n[bold cyan]Uploading Files{label}...[/bold cyan]")
 
-    files = _load("files.json")
+    source_files = _load("files.json")
     if limit:
-        files = files[:limit]
+        source_files = source_files[:limit]
+
+    console.print("  [cyan]Fetching existing files from destination to check duplicates...[/cyan]")
+    dest_files = await _fetch_all_files(client, label="[DEST] ")
+    existing_filenames = set()
+    for f in dest_files:
+        fn = f.get("filename")
+        if fn:
+            existing_filenames.add(fn.lower())
+    console.print(f"  [dim]Found {len(existing_filenames)} existing files in destination[/dim]")
 
     logger = MigrationLogger("upload_files")
     state = StateManager("dest_files")
+    skipped_duplicates = 0
 
     batch_size = 10
-    for i in range(0, len(files), batch_size):
-        batch = files[i:i + batch_size]
+    for i in range(0, len(source_files), batch_size):
+        batch = source_files[i:i + batch_size]
         create_inputs = []
 
         for file in batch:
             old_id = file.get("id", "")
             if state.is_done(old_id):
+                continue
+
+            filename = file.get("filename", "")
+            if filename and filename.lower() in existing_filenames:
+                skipped_duplicates += 1
+                state.mark_done(old_id, "duplicate")
                 continue
 
             url = file.get("url")
@@ -187,18 +213,17 @@ async def upload_files(client, limit=None):
                 "contentType": file.get("type", "IMAGE"),
             }
 
-            filename = file.get("filename")
             if filename:
                 file_input["filename"] = filename
 
-            create_inputs.append((old_id, file_input))
+            create_inputs.append((old_id, file_input, filename))
 
         if not create_inputs:
             continue
 
         try:
             result = await client.execute(FILE_CREATE, {
-                "files": [inp for _, inp in create_inputs],
+                "files": [inp for _, inp, _ in create_inputs],
             })
 
             mut = (result.get("data") or {}).get("fileCreate") or {}
@@ -206,24 +231,28 @@ async def upload_files(client, limit=None):
 
             if user_errors:
                 err_msg = "; ".join(e["message"] for e in user_errors)
-                for old_id, _ in create_inputs:
+                for old_id, _, _ in create_inputs:
                     logger.error(old_id, "USER_ERROR", err_msg)
             else:
                 new_files = mut.get("files", [])
-                for idx, (old_id, _) in enumerate(create_inputs):
+                for idx, (old_id, _, fn) in enumerate(create_inputs):
                     if idx < len(new_files) and new_files[idx]:
                         state.mark_done(old_id, new_files[idx]["id"])
-                        logger.success(old_id, f"-> {new_files[idx]['id']}")
+                        logger.success(old_id, f"{fn} -> {new_files[idx]['id']}")
+                        if fn:
+                            existing_filenames.add(fn.lower())
                     else:
                         logger.error(old_id, "NO_DATA", "No file returned")
         except Exception as e:
-            for old_id, _ in create_inputs:
+            for old_id, _, _ in create_inputs:
                 logger.error(old_id, "EXCEPTION", str(e))
 
-        processed = min(i + batch_size, len(files))
-        if processed % 50 == 0 or processed == len(files):
-            console.print(f"  Progress: {processed}/{len(files)}")
+        processed = min(i + batch_size, len(source_files))
+        if processed % 50 == 0 or processed == len(source_files):
+            console.print(f"  Progress: {processed}/{len(source_files)} (skipped {skipped_duplicates} duplicates)")
 
+    if skipped_duplicates:
+        console.print(f"  [yellow]Skipped {skipped_duplicates} duplicate files (already exist in destination)[/yellow]")
     console.print(f"  {logger.summary()}")
     logger.close()
 
