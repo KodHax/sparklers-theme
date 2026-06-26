@@ -346,8 +346,9 @@ async def create_metaobjects(client: GraphQLClient):
     logger.close()
 
 
-async def create_collections(client: GraphQLClient):
-    console.print("\n[bold cyan]Step 2: Creating Collections...[/bold cyan]")
+async def create_collections(client: GraphQLClient, limit: int | None = None):
+    label = f" (limit: {limit})" if limit else ""
+    console.print(f"\n[bold cyan]Step 2: Creating Collections{label}...[/bold cyan]")
     collections = _load("mapa_colecoes.json")
     logger = MigrationLogger("upload_collections")
     state = StateManager("dest_collections")
@@ -355,7 +356,11 @@ async def create_collections(client: GraphQLClient):
     smart = [c for c in collections if c.get("_type") == "smart"]
     manual = [c for c in collections if c.get("_type") != "smart"]
 
-    for coll in smart + manual:
+    all_colls = smart + manual
+    if limit:
+        all_colls = all_colls[:limit]
+
+    for coll in all_colls:
         old_id = coll["id"]
         if state.is_done(old_id):
             continue
@@ -409,7 +414,9 @@ async def create_collections(client: GraphQLClient):
         except Exception as e:
             logger.error(old_id, "EXCEPTION", str(e))
 
-    console.print(f"  Smart: {len(smart)} | Manual: {len(manual)}")
+    smart_count = sum(1 for c in all_colls if c.get("_type") == "smart")
+    manual_count = len(all_colls) - smart_count
+    console.print(f"  Smart: {smart_count} | Manual: {manual_count} | Total: {len(all_colls)}")
     console.print(f"  {logger.summary()}")
     logger.close()
 
@@ -687,7 +694,7 @@ async def run():
             if command in ("all", "metaobjects"):
                 await create_metaobjects(client)
             if command in ("all", "colecoes"):
-                await create_collections(client)
+                await create_collections(client, limit)
             if command in ("all", "produtos"):
                 await upload_products(client, limit)
             if command in ("all", "associar"):
