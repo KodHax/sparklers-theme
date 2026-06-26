@@ -1,0 +1,442 @@
+#!/usr/bin/env python3
+"""
+Migração de Encomendas entre lojas Shopify via GraphQL Admin API.
+Extrai todas as encomendas com informação completa (itens, tracking, pagamento, etc.)
+e importa na loja destino.
+
+Uso:
+  python migrate_orders.py extract                      # Extrai encomendas da loja origem
+  python migrate_orders.py upload [--limit N] [--full]  # Envia para loja destino
+
+Nota: A criação de encomendas na Shopify via API tem limitações.
+Encomendas são criadas como "imported" e não processam pagamentos reais.
+"""
+import asyncio
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shopify-migration"))
+
+from rich.console import Console
+
+from config import SOURCE, DEST, MAX_CONCURRENT, DATA_DIR
+from utils.graphql_client import GraphQLClient
+from utils.state import StateManager
+from utils.logger import MigrationLogger
+
+console = Console()
+
+ORDERS_QUERY = """
+query getOrders($first: Int!, $cursor: String) {
+  orders(first: $first, after: $cursor, sortKey: CREATED_AT) {
+    pageInfo { hasNextPage endCursor }
+    edges {
+      node {
+        id
+        name
+        email
+        phone
+        createdAt
+        processedAt
+        closedAt
+        cancelledAt
+        cancelReason
+        displayFinancialStatus
+        displayFulfillmentStatus
+        note
+        tags
+        currencyCode
+        totalPriceSet { shopMoney { amount currencyCode } }
+        subtotalPriceSet { shopMoney { amount currencyCode } }
+        totalTaxSet { shopMoney { amount currencyCode } }
+        totalShippingPriceSet { shopMoney { amount currencyCode } }
+        totalDiscountsSet { shopMoney { amount currencyCode } }
+        totalRefundedSet { shopMoney { amount currencyCode } }
+        customer {
+          id
+          email
+          firstName
+          lastName
+        }
+        shippingAddress {
+          firstName
+          lastName
+          address1
+          address2
+          city
+          province
+          provinceCode
+          country
+          countryCodeV2
+          zip
+          phone
+          company
+        }
+        billingAddress {
+          firstName
+          lastName
+          address1
+          address2
+          city
+          province
+          provinceCode
+          country
+          countryCodeV2
+          zip
+          phone
+          company
+        }
+        lineItems(first: 100) {
+          edges {
+            node {
+              title
+              quantity
+              originalUnitPriceSet { shopMoney { amount currencyCode } }
+              discountedUnitPriceSet { shopMoney { amount currencyCode } }
+              totalDiscountSet { shopMoney { amount currencyCode } }
+              sku
+              variantTitle
+              vendor
+              taxLines {
+                title
+                rate
+                priceSet { shopMoney { amount currencyCode } }
+              }
+              product { id handle }
+              variant { id }
+            }
+          }
+        }
+        shippingLines {
+          title
+          code
+          source
+          originalPriceSet { shopMoney { amount currencyCode } }
+          discountedPriceSet { shopMoney { amount currencyCode } }
+          taxLines {
+            title
+            rate
+            priceSet { shopMoney { amount currencyCode } }
+          }
+        }
+        taxLines {
+          title
+          rate
+          priceSet { shopMoney { amount currencyCode } }
+        }
+        fulfillments {
+          id
+          status
+          createdAt
+          trackingInfo {
+            company
+            number
+            url
+          }
+          fulfillmentLineItems(first: 100) {
+            edges {
+              node {
+                lineItem { title sku quantity }
+                quantity
+              }
+            }
+          }
+        }
+        transactions(first: 20) {
+          gateway
+          kind
+          status
+          amountSet { shopMoney { amount currencyCode } }
+          processedAt
+        }
+        refunds {
+          id
+          createdAt
+          note
+          refundLineItems(first: 50) {
+            edges {
+              node {
+                lineItem { title sku }
+                quantity
+                subtotalSet { shopMoney { amount currencyCode } }
+              }
+            }
+          }
+        }
+        discountApplications(first: 20) {
+          edges {
+            node {
+              allocationMethod
+              targetSelection
+              targetType
+              value {
+                ... on MoneyV2 { amount currencyCode }
+                ... on PricingPercentageValue { percentage }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+ORDER_CREATE = """
+mutation orderCreate($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
+  orderCreate(order: $order, options: $options) {
+    order { id name }
+    userErrors { field message }
+  }
+}
+"""
+
+FULFILLMENT_CREATE = """
+mutation fulfillmentCreate($fulfillment: FulfillmentInput!) {
+  fulfillmentCreate(fulfillment: $fulfillment) {
+    fulfillment { id status }
+    userErrors { field message }
+  }
+}
+"""
+
+
+def _save(filename, data):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    path = os.path.join(DATA_DIR, filename)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    console.print(f"  Saved {path} (ok)")
+
+
+def _load(filename):
+    path = os.path.join(DATA_DIR, filename)
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+async def extract_orders(client):
+    console.print("\n[bold cyan]Extracting Orders...[/bold cyan]")
+    orders = []
+    cursor = None
+    page = 0
+
+    while True:
+        result = await client.execute(ORDERS_QUERY, {"first": 20, "cursor": cursor})
+        data = (result.get("data") or {}).get("orders") or {}
+        edges = data.get("edges", [])
+
+        for edge in edges:
+            node = edge["node"]
+            node["lineItems"] = [
+                e["node"] for e in (node.get("lineItems") or {}).get("edges", [])
+            ]
+            node["discountApplications"] = [
+                e["node"] for e in (node.get("discountApplications") or {}).get("edges", [])
+            ]
+            for ful in node.get("fulfillments", []):
+                ful["fulfillmentLineItems"] = [
+                    e["node"] for e in (ful.get("fulfillmentLineItems") or {}).get("edges", [])
+                ]
+            for ref in node.get("refunds", []):
+                ref["refundLineItems"] = [
+                    e["node"] for e in (ref.get("refundLineItems") or {}).get("edges", [])
+                ]
+            orders.append(node)
+
+        page += 1
+        console.print(f"  Page {page}: {len(orders)} orders", end="\r")
+
+        page_info = data.get("pageInfo", {})
+        if not page_info.get("hasNextPage"):
+            break
+        cursor = page_info.get("endCursor")
+
+    paid = sum(1 for o in orders if o.get("displayFinancialStatus") == "PAID")
+    fulfilled = sum(1 for o in orders if o.get("displayFulfillmentStatus") == "FULFILLED")
+    cancelled = sum(1 for o in orders if o.get("cancelledAt"))
+    with_tracking = sum(1 for o in orders if any(
+        f.get("trackingInfo") for f in o.get("fulfillments", [])
+    ))
+
+    console.print(f"\n  Total: {len(orders)}")
+    console.print(f"  Paid: {paid} | Fulfilled: {fulfilled} | Cancelled: {cancelled} | With tracking: {with_tracking}")
+    _save("orders.json", orders)
+
+
+def _build_address(addr):
+    if not addr:
+        return None
+    result = {}
+    for f in ["firstName", "lastName", "address1", "address2", "city", "province",
+              "provinceCode", "country", "countryCodeV2", "zip", "phone", "company"]:
+        if addr.get(f):
+            result[f] = addr[f]
+    return result if result else None
+
+
+async def upload_orders(client, limit=None):
+    label = f" (limit: {limit})" if limit else " (ALL)"
+    console.print(f"\n[bold cyan]Uploading Orders{label}...[/bold cyan]")
+
+    orders = _load("orders.json")
+    if limit:
+        orders = orders[:limit]
+
+    customer_state = StateManager("dest_customers")
+    logger = MigrationLogger("upload_orders")
+    state = StateManager("dest_orders")
+
+    for i, order in enumerate(orders):
+        old_id = order.get("id", "")
+        order_name = order.get("name", old_id)
+
+        if state.is_done(old_id):
+            continue
+
+        line_items = []
+        for item in order.get("lineItems", []):
+            li = {
+                "title": item.get("title", "Unknown"),
+                "quantity": item.get("quantity", 1),
+                "priceSet": item.get("originalUnitPriceSet"),
+            }
+            if item.get("sku"):
+                li["sku"] = item["sku"]
+            if item.get("taxLines"):
+                li["taxLines"] = [
+                    {
+                        "title": t.get("title", "Tax"),
+                        "rate": t.get("rate", 0),
+                        "priceSet": t.get("priceSet"),
+                    }
+                    for t in item["taxLines"]
+                ]
+            line_items.append(li)
+
+        if not line_items:
+            logger.error(order_name, "SKIP", "No line items")
+            continue
+
+        order_input = {
+            "lineItems": line_items,
+            "currency": order.get("currencyCode", "EUR"),
+            "financialStatus": (order.get("displayFinancialStatus") or "PAID").upper(),
+        }
+
+        if order.get("processedAt"):
+            order_input["processedAt"] = order["processedAt"]
+        if order.get("note"):
+            order_input["note"] = order["note"]
+        if order.get("tags"):
+            order_input["tags"] = order["tags"]
+        if order.get("email"):
+            order_input["email"] = order["email"]
+        if order.get("phone"):
+            order_input["phone"] = order["phone"]
+
+        if order.get("customer"):
+            cust_email = order["customer"].get("email")
+            new_cust_id = customer_state.get_new_id(cust_email) if cust_email else None
+            if new_cust_id:
+                order_input["customer"] = {"id": new_cust_id}
+
+        shipping = _build_address(order.get("shippingAddress"))
+        if shipping:
+            order_input["shippingAddress"] = shipping
+
+        billing = _build_address(order.get("billingAddress"))
+        if billing:
+            order_input["billingAddress"] = billing
+
+        if order.get("shippingLines"):
+            order_input["shippingLines"] = []
+            for sl in order["shippingLines"]:
+                sl_input = {"title": sl.get("title", "Shipping")}
+                if sl.get("originalPriceSet"):
+                    sl_input["priceSet"] = sl["originalPriceSet"]
+                if sl.get("code"):
+                    sl_input["code"] = sl["code"]
+                if sl.get("taxLines"):
+                    sl_input["taxLines"] = [
+                        {"title": t.get("title", "Tax"), "rate": t.get("rate", 0), "priceSet": t.get("priceSet")}
+                        for t in sl["taxLines"]
+                    ]
+                order_input["shippingLines"].append(sl_input)
+
+        if order.get("transactions"):
+            order_input["transactions"] = []
+            for tx in order["transactions"]:
+                tx_input = {
+                    "kind": tx.get("kind", "SALE"),
+                    "status": tx.get("status", "SUCCESS"),
+                    "gateway": tx.get("gateway", "manual"),
+                    "amountSet": tx.get("amountSet"),
+                }
+                if tx.get("processedAt"):
+                    tx_input["processedAt"] = tx["processedAt"]
+                order_input["transactions"].append(tx_input)
+
+        try:
+            result = await client.execute(ORDER_CREATE, {
+                "order": order_input,
+                "options": {"inventoryBehaviour": "BYPASS"},
+            })
+
+            mut = (result.get("data") or {}).get("orderCreate") or {}
+            user_errors = mut.get("userErrors", [])
+
+            if user_errors:
+                err_msg = "; ".join(e["message"] for e in user_errors)
+                logger.error(order_name, "USER_ERROR", err_msg)
+            else:
+                new_order = mut.get("order")
+                if new_order:
+                    state.mark_done(old_id, new_order["id"])
+                    logger.success(order_name, f"-> {new_order['id']}")
+                else:
+                    logger.error(order_name, "NO_DATA", str(result)[:300])
+        except Exception as e:
+            logger.error(order_name, "EXCEPTION", str(e))
+
+        if (i + 1) % 20 == 0:
+            console.print(f"  Progress: {i + 1}/{len(orders)}")
+
+    console.print(f"  {logger.summary()}")
+    logger.close()
+
+
+async def run():
+    args = sys.argv[1:]
+    command = args[0] if args else ""
+    limit = 50
+
+    if "--full" in args:
+        limit = None
+    elif "--limit" in args:
+        idx = args.index("--limit")
+        if idx + 1 < len(args):
+            limit = int(args[idx + 1])
+
+    if command == "extract":
+        console.print("\n[bold green]═══ EXTRACT ORDERS ═══[/bold green]")
+        async with GraphQLClient(SOURCE, MAX_CONCURRENT) as client:
+            await extract_orders(client)
+        console.print("\n[bold green]═══ EXTRAÇÃO COMPLETA ═══[/bold green]")
+
+    elif command == "upload":
+        label = "TESTE" if limit else "COMPLETO"
+        console.print(f"\n[bold green]═══ UPLOAD {label} ═══[/bold green]")
+        async with GraphQLClient(DEST, MAX_CONCURRENT) as client:
+            await upload_orders(client, limit)
+        console.print("\n[bold green]═══ UPLOAD COMPLETO ═══[/bold green]")
+
+    else:
+        console.print("[yellow]Uso:[/yellow]")
+        console.print("  python migrate_orders.py extract")
+        console.print("  python migrate_orders.py upload [--limit N] [--full]")
+
+
+if __name__ == "__main__":
+    asyncio.run(run())

@@ -27,7 +27,11 @@ SCOPES = (
     "read_product_listings,"
     "read_collection_listings,"
     "write_merchant_managed_fulfillment_orders,"
-    "read_assigned_fulfillment_orders"
+    "read_assigned_fulfillment_orders,"
+    "read_customers,write_customers,"
+    "read_orders,write_orders,"
+    "read_files,write_files,"
+    "read_fulfillments,write_fulfillments"
 )
 
 TOKEN_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
