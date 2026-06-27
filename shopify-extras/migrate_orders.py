@@ -188,21 +188,25 @@ query getOrders($first: Int!, $cursor: String) {
 ORDER_CREATE = """
 mutation orderCreate($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
   orderCreate(order: $order, options: $options) {
-    order {
-      id
-      name
-      fulfillmentOrders(first: 10) {
-        edges {
-          node {
-            id
-            lineItems(first: 100) {
-              edges { node { id remainingQuantity } }
-            }
+    order { id name }
+    userErrors { field message }
+  }
+}
+"""
+
+GET_FULFILLMENT_ORDERS = """
+query($orderId: ID!) {
+  order(id: $orderId) {
+    fulfillmentOrders(first: 10) {
+      edges {
+        node {
+          id
+          lineItems(first: 100) {
+            edges { node { id remainingQuantity } }
           }
         }
       }
     }
-    userErrors { field message }
   }
 }
 """
@@ -419,7 +423,12 @@ async def upload_orders(client, limit=None):
 
                     fulfillments = order.get("fulfillments", [])
                     if fulfillments:
-                        fo_edges = (new_order.get("fulfillmentOrders") or {}).get("edges", [])
+                        try:
+                            fo_result = await client.execute(GET_FULFILLMENT_ORDERS, {"orderId": new_order["id"]})
+                            fo_data = (fo_result.get("data") or {}).get("order") or {}
+                            fo_edges = (fo_data.get("fulfillmentOrders") or {}).get("edges", [])
+                        except Exception:
+                            fo_edges = []
                         for ful in fulfillments:
                             tracking = ful.get("trackingInfo", [])
                             if not fo_edges:
