@@ -188,15 +188,28 @@ query getOrders($first: Int!, $cursor: String) {
 ORDER_CREATE = """
 mutation orderCreate($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
   orderCreate(order: $order, options: $options) {
-    order { id name }
+    order {
+      id
+      name
+      fulfillmentOrders(first: 10) {
+        edges {
+          node {
+            id
+            lineItems(first: 100) {
+              edges { node { id remainingQuantity } }
+            }
+          }
+        }
+      }
+    }
     userErrors { field message }
   }
 }
 """
 
 FULFILLMENT_CREATE = """
-mutation fulfillmentCreate($fulfillment: FulfillmentInput!) {
-  fulfillmentCreate(fulfillment: $fulfillment) {
+mutation fulfillmentCreateV2($fulfillment: FulfillmentV2Input!) {
+  fulfillmentCreateV2(fulfillment: $fulfillment) {
     fulfillment { id status }
     userErrors { field message }
   }
@@ -330,6 +343,7 @@ async def upload_orders(client, limit=None):
             "lineItems": line_items,
             "currency": order.get("currencyCode", "EUR"),
             "financialStatus": (order.get("displayFinancialStatus") or "PAID").upper(),
+            "fulfillment": "FULFILLED" if order.get("displayFulfillmentStatus") == "FULFILLED" else "NONE",
         }
 
         if order.get("processedAt"):
@@ -402,6 +416,55 @@ async def upload_orders(client, limit=None):
                 if new_order:
                     state.mark_done(old_id, new_order["id"])
                     logger.success(order_name, f"-> {new_order['id']}")
+
+                    fulfillments = order.get("fulfillments", [])
+                    if fulfillments:
+                        fo_edges = (new_order.get("fulfillmentOrders") or {}).get("edges", [])
+                        for ful in fulfillments:
+                            tracking = ful.get("trackingInfo", [])
+                            if not fo_edges:
+                                continue
+
+                            fo_line_items = []
+                            for fo_edge in fo_edges:
+                                fo_node = fo_edge["node"]
+                                for li_edge in (fo_node.get("lineItems") or {}).get("edges", []):
+                                    li_node = li_edge["node"]
+                                    if li_node.get("remainingQuantity", 0) > 0:
+                                        fo_line_items.append({
+                                            "fulfillmentOrderId": fo_node["id"],
+                                            "fulfillmentOrderLineItems": [
+                                                {"id": li_node["id"], "quantity": li_node["remainingQuantity"]}
+                                            ],
+                                        })
+
+                            if not fo_line_items:
+                                continue
+
+                            ful_input = {"lineItemsByFulfillmentOrder": fo_line_items}
+
+                            if tracking:
+                                t = tracking[0] if isinstance(tracking, list) else tracking
+                                tracking_input = {}
+                                if t.get("number"):
+                                    tracking_input["number"] = t["number"]
+                                if t.get("company"):
+                                    tracking_input["company"] = t["company"]
+                                if t.get("url"):
+                                    tracking_input["url"] = t["url"]
+                                if tracking_input:
+                                    ful_input["trackingInfo"] = tracking_input
+
+                            try:
+                                ful_result = await client.execute(FULFILLMENT_CREATE, {"fulfillment": ful_input})
+                                ful_mut = (ful_result.get("data") or {}).get("fulfillmentCreateV2") or {}
+                                ful_errors = ful_mut.get("userErrors", [])
+                                if ful_errors:
+                                    console.print(f"  [yellow]Fulfillment error for {order_name}: {ful_errors}[/yellow]")
+                                else:
+                                    console.print(f"  [green]Fulfillment + tracking created for {order_name}[/green]")
+                            except Exception as fe:
+                                console.print(f"  [yellow]Fulfillment failed for {order_name}: {fe}[/yellow]")
                 else:
                     logger.error(order_name, "NO_DATA", str(result)[:300])
         except Exception as e:
