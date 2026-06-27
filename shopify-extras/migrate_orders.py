@@ -425,7 +425,7 @@ async def upload_orders(client, limit=None):
         try:
             result = await client.execute(ORDER_CREATE, {
                 "order": order_input,
-                "options": {"inventoryBehaviour": "BYPASS"},
+                "options": {"inventoryBehaviour": "BYPASS", "sendReceipt": False, "sendFulfillmentReceipt": False},
             })
 
             top_errors = result.get("errors", [])
