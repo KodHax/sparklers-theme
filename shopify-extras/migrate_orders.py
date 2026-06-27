@@ -220,6 +220,26 @@ mutation fulfillmentCreateV2($fulfillment: FulfillmentV2Input!) {
 }
 """
 
+FULFILLMENT_TRACKING_UPDATE = """
+mutation fulfillmentTrackingInfoUpdateV2($fulfillmentId: ID!, $trackingInfoInput: FulfillmentTrackingInput!) {
+  fulfillmentTrackingInfoUpdateV2(fulfillmentId: $fulfillmentId, trackingInfoInput: $trackingInfoInput) {
+    fulfillment { id status }
+    userErrors { field message }
+  }
+}
+"""
+
+GET_ORDER_FULFILLMENTS = """
+query($orderId: ID!) {
+  order(id: $orderId) {
+    fulfillments {
+      id
+      trackingInfo { number company url }
+    }
+  }
+}
+"""
+
 
 def _save(filename, data):
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -347,7 +367,6 @@ async def upload_orders(client, limit=None):
             "lineItems": line_items,
             "currency": order.get("currencyCode", "EUR"),
             "financialStatus": (order.get("displayFinancialStatus") or "PAID").upper(),
-            "fulfillmentStatus": "FULFILLED" if order.get("displayFulfillmentStatus") == "FULFILLED" else "UNFULFILLED",
         }
 
         if order.get("processedAt"):
@@ -462,19 +481,22 @@ async def upload_orders(client, limit=None):
                         if not fo_line_items:
                             continue
 
-                        ful_input = {"lineItemsByFulfillmentOrder": fo_line_items}
-
+                        tracking_input = {}
                         if tracking:
                             t = tracking[0] if isinstance(tracking, list) else tracking
-                            tracking_input = {}
                             if t.get("number"):
                                 tracking_input["number"] = t["number"]
                             if t.get("company"):
                                 tracking_input["company"] = t["company"]
                             if t.get("url"):
                                 tracking_input["url"] = t["url"]
-                            if tracking_input:
-                                ful_input["trackingInfo"] = tracking_input
+
+                        ful_input = {
+                            "lineItemsByFulfillmentOrder": fo_line_items,
+                            "notifyCustomer": False,
+                        }
+                        if tracking_input:
+                            ful_input["trackingInfo"] = tracking_input
 
                         try:
                             ful_result = await client.execute(FULFILLMENT_CREATE, {"fulfillment": ful_input})
