@@ -157,22 +157,23 @@ async def upload_pages():
     with open(pages_file, "r", encoding="utf-8") as f:
         pages = json.load(f)
 
-    full = "--full" in sys.argv
-    limit = None
-    for arg in sys.argv:
-        if arg.startswith("--limit"):
+    limit = 0
+    for i, arg in enumerate(sys.argv):
+        if arg == "--limit" and i + 1 < len(sys.argv):
             try:
-                limit = int(sys.argv[sys.argv.index(arg) + 1])
-            except (IndexError, ValueError):
+                limit = int(sys.argv[i + 1])
+            except ValueError:
                 limit = 1
+        elif arg == "--full":
+            limit = -1
 
-    if not full and limit is None:
+    if limit == 0:
         console.print(f"\n[yellow]Encontradas {len(pages)} páginas para importar.[/yellow]")
         console.print("  python migrate_pages.py upload --full")
         console.print("  python migrate_pages.py upload --limit 1")
         return
 
-    if limit:
+    if limit > 0:
         pages = pages[:limit]
 
     state = StateManager("state_pages.json")
