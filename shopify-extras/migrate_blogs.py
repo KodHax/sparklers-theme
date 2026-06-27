@@ -317,8 +317,6 @@ async def upload_blogs():
                     "isPublished": article["isPublished"],
                 }
 
-                if article.get("publishedAt"):
-                    art_input["publishedAt"] = article["publishedAt"]
 
                 if article.get("templateSuffix"):
                     art_input["templateSuffix"] = article["templateSuffix"]
