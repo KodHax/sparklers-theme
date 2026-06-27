@@ -56,6 +56,15 @@ mutation collectionReorderProducts($id: ID!, $moves: [MoveInput!]!) {
 }
 """
 
+COLLECTION_UPDATE_SORT = """
+mutation collectionUpdate($input: CollectionInput!) {
+  collectionUpdate(input: $input) {
+    collection { id sortOrder }
+    userErrors { field message }
+  }
+}
+"""
+
 
 async def _fetch_collection_products(client, collection_id):
     products = []
@@ -131,6 +140,13 @@ async def run():
             dest_coll = dest_by_handle.get(handle)
             if not dest_coll or not source_handles:
                 continue
+
+            try:
+                await dest_client.execute(COLLECTION_UPDATE_SORT, {
+                    "input": {"id": dest_coll["id"], "sortOrder": "MANUAL"},
+                })
+            except Exception:
+                pass
 
             dest_products = await _fetch_collection_products(dest_client, dest_coll["id"])
             dest_by_prod_handle = {p["handle"]: p["id"] for p in dest_products}
