@@ -343,7 +343,7 @@ async def upload_orders(client, limit=None):
             "lineItems": line_items,
             "currency": order.get("currencyCode", "EUR"),
             "financialStatus": (order.get("displayFinancialStatus") or "PAID").upper(),
-            "fulfillment": "FULFILLED" if order.get("displayFulfillmentStatus") == "FULFILLED" else "NONE",
+            "fulfillmentStatus": "FULFILLED" if order.get("displayFulfillmentStatus") == "FULFILLED" else "UNFULFILLED",
         }
 
         if order.get("processedAt"):
