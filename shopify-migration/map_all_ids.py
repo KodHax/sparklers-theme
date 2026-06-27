@@ -40,119 +40,186 @@ query($query: String!) {
 }
 """
 
-old_pids = "15083014062457,15254643900793,15083017404793,15428832461177,15083013407097,15357132210553,15083016716665,15083017372025,15083016618361,15357131850105,15083015569785,15083016585593,15303261061497,15083017699705,15083015373177,15083013898617,15083017732473,15083014291833,15083017503097,15083016520057,15083017634169,15083017601401,15083014947193,55609143067001,15404702597497,15370266542457,15083014586745,15083014652281,15083014553977,15083013734777,15083017437561,15083014488441,55609143361913,15083016847737".split(",")
+# All unique product IDs from the code
+ALL_PIDS = [
+    "15598677295481",  # ENVIO_PRODUCT_ID
+    "15169830420857", "15161428640121", "15172284907897", "15170716565881",
+    "15083014062457", "15254643900793", "15083013407097", "15357132210553",
+    "15083016716665", "15083017372025", "15083016618361", "15357131850105",
+    "15083015569785", "15083016585593", "15303261061497", "15083017699705",
+    "15083015373177", "15083013898617", "15083017732473", "15083014291833",
+    "15083017503097", "15083016520057", "15083017634169", "15083017601401",
+    "15083014947193", "15370266542457", "15083014586745", "15083014652281",
+    "15083014553977", "15083013734777", "15083017437561", "15083014488441",
+    "15404702597497", "15083016847737", "55609143067001", "55609143361913",
+    "15151676686713", "56140138185081", "15238599639417", "15170780791161",
+    "15083013374329", "57186808136057", "57186808168825", "63778682306937",
+    "15170769420665", "15182128447865", "56694835413369", "15428832461177",
+    "15083017175417", "15083017404793",
+]
 
-old_vids = "55974783025529,55935482429817,55984871604601,56140138185081,55978713022841,55896084873593,56223877792121,56223877824889,55978829971833,55609143361913,55609127371129,15083013374329,57186808136057,57186808168825,63778682306937,55978804216185,56030781145465,56694835413369".split(",")
+# All unique variant IDs from the code
+ALL_VIDS = [
+    "63745756561785",  # ENVIO_VARIANT_ID
+    "55974783025529", "55935482429817", "55984871604601", "55978713022841",
+    "55609127371129", "55609143361913", "55896084873593", "56223877792121",
+    "56223877824889", "55978829971833", "55978804216185", "56030781145465",
+]
+
+# Remove duplicates preserving order
+seen_p = set()
+UNIQUE_PIDS = []
+for p in ALL_PIDS:
+    if p not in seen_p:
+        seen_p.add(p)
+        UNIQUE_PIDS.append(p)
+
+seen_v = set()
+UNIQUE_VIDS = []
+for v in ALL_VIDS:
+    if v not in seen_v:
+        seen_v.add(v)
+        UNIQUE_VIDS.append(v)
+
+
+async def map_product(src, dest, pid, cache):
+    if pid in cache:
+        return cache[pid]
+    gid = f"gid://shopify/Product/{pid}"
+    result = await src.execute(PRODUCT_QUERY, {"id": gid})
+    product = (result.get("data") or {}).get("product")
+    if not product:
+        cache[pid] = None
+        return None
+    handle = product["handle"]
+    result2 = await dest.execute(PRODUCT_BY_HANDLE, {"query": f"handle:{handle}"})
+    edges = ((result2.get("data") or {}).get("products") or {}).get("edges", [])
+    if edges:
+        new_id = edges[0]["node"]["id"].split("/")[-1]
+        cache[pid] = {"old": pid, "new": new_id, "handle": handle, "title": product["title"], "variants": edges[0]["node"]["variants"]["edges"]}
+        return cache[pid]
+    cache[pid] = None
+    return None
+
+
+async def map_variant(src, dest, vid, product_cache):
+    gid = f"gid://shopify/ProductVariant/{vid}"
+    result = await src.execute(VARIANT_QUERY, {"id": gid})
+    variant = (result.get("data") or {}).get("productVariant")
+    if not variant:
+        return None
+    prod = variant.get("product", {})
+    handle = prod.get("handle", "")
+    sku = variant.get("sku", "")
+    title = variant.get("title", "")
+
+    # Find dest product
+    dest_variants = []
+    for cached in product_cache.values():
+        if cached and cached["handle"] == handle:
+            dest_variants = [e["node"] for e in cached.get("variants", [])]
+            break
+
+    if not dest_variants:
+        result2 = await dest.execute(PRODUCT_BY_HANDLE, {"query": f"handle:{handle}"})
+        edges = ((result2.get("data") or {}).get("products") or {}).get("edges", [])
+        if edges:
+            dest_variants = [e["node"] for e in edges[0]["node"]["variants"]["edges"]]
+
+    # Match by SKU, then title, then single variant
+    for dv in dest_variants:
+        if sku and dv.get("sku") == sku:
+            return dv["id"].split("/")[-1]
+    for dv in dest_variants:
+        if dv.get("title") == title:
+            return dv["id"].split("/")[-1]
+    if len(dest_variants) == 1:
+        return dest_variants[0]["id"].split("/")[-1]
+    return None
 
 
 async def run():
-    # Step 1: Go to SOURCE store, get handle for each old product/variant
-    print("=== STEP 1: Fetching from SOURCE store ===\n")
-    product_handles = {}  # old_pid -> handle
-    variant_info = {}  # old_vid -> (handle, variant_index, sku)
+    product_cache = {}
+    pid_map = {}
+    vid_map = {}
 
-    async with GraphQLClient(SOURCE, MAX_CONCURRENT) as src:
-        print("--- Products ---")
-        for pid in old_pids:
-            gid = f"gid://shopify/Product/{pid}"
-            result = await src.execute(PRODUCT_QUERY, {"id": gid})
-            product = (result.get("data") or {}).get("product")
-            if product:
-                handle = product["handle"]
-                product_handles[pid] = handle
-                print(f"  {pid}: {product['title']} ({handle})")
+    async with GraphQLClient(SOURCE, MAX_CONCURRENT) as src, GraphQLClient(DEST, MAX_CONCURRENT) as dest:
+        print("=== MAPPING PRODUCTS ===\n")
+        for pid in UNIQUE_PIDS:
+            info = await map_product(src, dest, pid, product_cache)
+            if info:
+                pid_map[pid] = info["new"]
+                print(f"  {pid} -> {info['new']}  ({info['handle']})")
             else:
-                product_handles[pid] = None
-                print(f"  {pid}: NOT FOUND")
+                pid_map[pid] = "???"
+                print(f"  {pid} -> ???  (NOT FOUND)")
 
-        print("\n--- Variants ---")
-        for vid in old_vids:
-            gid = f"gid://shopify/ProductVariant/{vid}"
-            result = await src.execute(VARIANT_QUERY, {"id": gid})
-            variant = (result.get("data") or {}).get("productVariant")
-            if variant:
-                prod = variant.get("product", {})
-                handle = prod.get("handle", "")
-                sku = variant.get("sku", "")
-                variant_info[vid] = {"handle": handle, "sku": sku, "title": variant.get("title", "")}
-                print(f"  {vid}: {variant['title']} (sku: {sku}, product: {handle})")
+        print("\n=== MAPPING VARIANTS ===\n")
+        for vid in UNIQUE_VIDS:
+            new_vid = await map_variant(src, dest, vid, product_cache)
+            if new_vid:
+                vid_map[vid] = new_vid
+                print(f"  {vid} -> {new_vid}")
             else:
-                variant_info[vid] = None
-                print(f"  {vid}: NOT FOUND")
+                vid_map[vid] = "???"
+                print(f"  {vid} -> ???  (NOT FOUND)")
 
-    # Step 2: Go to DEST store, find new IDs by handle
-    print("\n\n=== STEP 2: Fetching from DEST store ===\n")
-    new_pids = []
-    new_vids = []
+    # Build the ELIGIBLE array
+    ELIGIBLE = [
+        ("15169830420857", "55974783025529"),
+        ("15161428640121", "55935482429817"),
+        ("15172284907897", "55984871604601"),
+        ("15170716565881", "55978713022841"),
+        ("15083014062457", None), ("15254643900793", None),
+        ("15083013407097", None), ("15357132210553", None),
+        ("15083016716665", None), ("15083017372025", None),
+        ("15083016618361", None), ("15357131850105", None),
+        ("15083015569785", None), ("15083016585593", None),
+        ("15303261061497", None), ("15083017699705", None),
+        ("15083015373177", None), ("15083013898617", None),
+        ("15083017732473", None), ("15083014291833", None),
+        ("15083017503097", None), ("15083016520057", None),
+        ("15083017634169", None), ("15083017601401", None),
+        ("15083014947193", None), ("15370266542457", None),
+        ("15083014586745", None), ("15083014652281", None),
+        ("15083014553977", None), ("15083013734777", None),
+        ("15083017437561", None), ("15083014488441", None),
+        ("15404702597497", None), ("15083016847737", None),
+        ("55609143067001", "55609127371129"),
+        ("55609143361913", "55609143361913"),
+        ("15151676686713", "55896084873593"),
+        ("56140138185081", None),
+        ("15238599639417", "56223877792121"),
+        ("15238599639417", "56223877824889"),
+        ("15170780791161", "55978829971833"),
+        ("15083013374329", None),
+        ("57186808136057", None),
+        ("57186808168825", None),
+        ("63778682306937", None),
+        ("15170769420665", "55978804216185"),
+        ("15182128447865", "56030781145465"),
+        ("56694835413369", None),
+        ("15428832461177", None),
+        ("15083017175417", None),
+        ("15083017404793", None),
+    ]
 
-    async with GraphQLClient(DEST, MAX_CONCURRENT) as dest:
-        # Map products
-        print("--- Products ---")
-        for pid in old_pids:
-            handle = product_handles.get(pid)
-            if not handle:
-                new_pids.append("???")
-                print(f"  {pid} -> ??? (not found in source)")
-                continue
-
-            result = await dest.execute(PRODUCT_BY_HANDLE, {"query": f"handle:{handle}"})
-            edges = ((result.get("data") or {}).get("products") or {}).get("edges", [])
-            if edges:
-                new_id = edges[0]["node"]["id"].split("/")[-1]
-                new_pids.append(new_id)
-                print(f"  {pid} -> {new_id} ({handle})")
-            else:
-                new_pids.append("???")
-                print(f"  {pid} -> ??? (not found in dest: {handle})")
-
-        # Map variants
-        print("\n--- Variants ---")
-        variant_cache = {}  # handle -> [variants from dest]
-        for vid in old_vids:
-            info = variant_info.get(vid)
-            if not info:
-                new_vids.append("???")
-                print(f"  {vid} -> ??? (not found in source)")
-                continue
-
-            handle = info["handle"]
-            sku = info["sku"]
-
-            if handle not in variant_cache:
-                result = await dest.execute(PRODUCT_BY_HANDLE, {"query": f"handle:{handle}"})
-                edges = ((result.get("data") or {}).get("products") or {}).get("edges", [])
-                if edges:
-                    dest_variants = [e["node"] for e in edges[0]["node"]["variants"]["edges"]]
-                    variant_cache[handle] = dest_variants
-                else:
-                    variant_cache[handle] = []
-
-            dest_variants = variant_cache.get(handle, [])
-            # Match by SKU first, then by title
-            matched = None
-            for dv in dest_variants:
-                if sku and dv.get("sku") == sku:
-                    matched = dv["id"].split("/")[-1]
-                    break
-            if not matched:
-                for dv in dest_variants:
-                    if dv.get("title") == info["title"]:
-                        matched = dv["id"].split("/")[-1]
-                        break
-            if not matched and len(dest_variants) == 1:
-                matched = dest_variants[0]["id"].split("/")[-1]
-
-            if matched:
-                new_vids.append(matched)
-                print(f"  {vid} -> {matched} ({handle} / {sku})")
-            else:
-                new_vids.append("???")
-                print(f"  {vid} -> ??? (no match in dest: {handle} / {sku})")
-
-    # Final output
     print("\n\n=== COPY-PASTE READY ===\n")
-    print(f'assign fast_pids_all = "{",".join(new_pids)}" | split: ","')
-    print(f'assign fast_vids = "{",".join(new_vids)}" | split: ","')
+    envio_pid = pid_map.get("15598677295481", "???")
+    envio_vid = vid_map.get("63745756561785", "???")
+    print(f"  var ENVIO_PRODUCT_ID = {envio_pid};")
+    print(f"  var ENVIO_VARIANT_ID = '{envio_vid}';")
+    print("  var warningActive = false;")
+    print()
+    print("  var ELIGIBLE = [")
+    for old_pid, old_vid in ELIGIBLE:
+        new_pid = pid_map.get(old_pid, "???")
+        if old_vid:
+            new_vid = vid_map.get(old_vid, "???")
+            print(f"    {{ pid: {new_pid}, vid: {new_vid} }},")
+        else:
+            print(f"    {{ pid: {new_pid}, vid: null }},")
+    print("  ];")
 
 
 asyncio.run(run())
