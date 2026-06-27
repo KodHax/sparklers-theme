@@ -63,10 +63,6 @@ query($blogId: ID!, $first: Int!, $cursor: String) {
             width
             height
           }
-          seo {
-            title
-            description
-          }
           metafields(first: 20) {
             edges {
               node {
@@ -178,7 +174,6 @@ async def extract_blogs():
                         "templateSuffix": node.get("templateSuffix") or "",
                         "author": (node.get("author") or {}).get("name", ""),
                         "image": node.get("image"),
-                        "seo": node.get("seo") or {},
                         "metafields": [
                             {
                                 "namespace": m["node"]["namespace"],
@@ -336,14 +331,6 @@ async def upload_blogs():
                         "url": article["image"]["url"],
                         "altText": article["image"].get("altText") or "",
                     }
-
-                seo = article.get("seo") or {}
-                if seo.get("title") or seo.get("description"):
-                    art_input["seo"] = {}
-                    if seo.get("title"):
-                        art_input["seo"]["title"] = seo["title"]
-                    if seo.get("description"):
-                        art_input["seo"]["description"] = seo["description"]
 
                 try:
                     if art_handle in existing_articles:
