@@ -204,10 +204,14 @@ async def upload_files(client, limit=None):
             if not url:
                 continue
 
+            content_type = file.get("type", "IMAGE")
+            if content_type == "GENERIC":
+                content_type = "FILE"
+
             file_input = {
                 "originalSource": url,
                 "alt": file.get("alt", ""),
-                "contentType": file.get("type", "IMAGE"),
+                "contentType": content_type,
             }
 
             if filename:
