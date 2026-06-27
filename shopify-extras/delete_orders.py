@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Apaga todas as encomendas da loja destino.
+Usa GraphQL para listar e cancelar, REST API para apagar (GraphQL não tem orderDelete).
 
 Uso:
   python delete_orders.py          # Lista quantas encomendas existem
@@ -9,6 +10,7 @@ Uso:
 import asyncio
 import sys
 
+import httpx
 from rich.console import Console
 
 from config import DEST, MAX_CONCURRENT
@@ -33,14 +35,9 @@ mutation orderCancel($orderId: ID!, $reason: OrderCancelReason!, $refund: Boolea
 }
 """
 
-DELETE_ORDER = """
-mutation orderDelete($orderId: ID!) {
-  orderDelete(input: {id: $orderId}) {
-    deletedOrderId
-    userErrors { field message }
-  }
-}
-"""
+
+def _gid_to_rest_id(gid: str) -> str:
+    return gid.split("/")[-1]
 
 
 async def run():
@@ -65,6 +62,10 @@ async def run():
         console.print(f"  Found {len(orders)} orders")
 
         if not delete:
+            for o in orders[:10]:
+                console.print(f"    {o.get('name', o['id'])}")
+            if len(orders) > 10:
+                console.print(f"    ... e mais {len(orders) - 10}")
             console.print("\n[yellow]Para apagar, corre:[/yellow]")
             console.print("  python delete_orders.py --delete")
             return
@@ -73,39 +74,40 @@ async def run():
         deleted = 0
         errors = 0
 
-        for order in orders:
-            oid = order["id"]
-            name = order.get("name", oid)
+        rest_headers = {
+            "X-Shopify-Access-Token": DEST.access_token,
+            "Content-Type": "application/json",
+        }
 
-            try:
-                cancel_result = await client.execute(CANCEL_ORDER, {
-                    "orderId": oid,
-                    "reason": "OTHER",
-                    "refund": False,
-                    "restock": False,
-                })
-            except Exception:
-                pass
+        async with httpx.AsyncClient(headers=rest_headers, timeout=30.0) as rest:
+            for order in orders:
+                oid = order["id"]
+                name = order.get("name", oid)
+                rest_id = _gid_to_rest_id(oid)
 
-            try:
-                result = await client.execute(DELETE_ORDER, {"orderId": oid})
-                mut = (result.get("data") or {}).get("orderDelete") or {}
-                user_errors = mut.get("userErrors", [])
+                try:
+                    await client.execute(CANCEL_ORDER, {
+                        "orderId": oid,
+                        "reason": "OTHER",
+                        "refund": False,
+                        "restock": False,
+                    })
+                except Exception:
+                    pass
 
-                if user_errors:
-                    console.print(f"  [red]{name}: {user_errors[0]['message']}[/red]")
+                try:
+                    resp = await rest.delete(f"{DEST.rest_url}/orders/{rest_id}.json")
+                    if resp.status_code == 200:
+                        deleted += 1
+                    else:
+                        console.print(f"  [red]{name}: HTTP {resp.status_code} - {resp.text[:200]}[/red]")
+                        errors += 1
+                except Exception as e:
+                    console.print(f"  [red]{name}: {e}[/red]")
                     errors += 1
-                elif mut.get("deletedOrderId"):
-                    deleted += 1
-                else:
-                    console.print(f"  [red]{name}: Unknown error[/red]")
-                    errors += 1
-            except Exception as e:
-                console.print(f"  [red]{name}: {e}[/red]")
-                errors += 1
 
-            if (deleted + errors) % 20 == 0:
-                console.print(f"  Progress: {deleted + errors}/{len(orders)}")
+                if (deleted + errors) % 20 == 0 and (deleted + errors) > 0:
+                    console.print(f"  Progress: {deleted + errors}/{len(orders)}")
 
         console.print(f"\n  [green]Deleted: {deleted}[/green] | [red]Errors: {errors}[/red]")
 
