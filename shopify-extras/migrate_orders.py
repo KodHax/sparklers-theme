@@ -409,73 +409,83 @@ async def upload_orders(client, limit=None):
                 "options": {"inventoryBehaviour": "BYPASS"},
             })
 
+            top_errors = result.get("errors", [])
+            access_denied = any("Access denied" in str(e) for e in top_errors)
+
             mut = (result.get("data") or {}).get("orderCreate") or {}
             user_errors = mut.get("userErrors", [])
+            new_order = mut.get("order")
 
             if user_errors:
                 err_msg = "; ".join(e["message"] for e in user_errors)
                 logger.error(order_name, "USER_ERROR", err_msg)
+            elif not new_order and not access_denied:
+                logger.error(order_name, "NO_DATA", str(result)[:300])
             else:
-                new_order = mut.get("order")
-                if new_order:
-                    state.mark_done(old_id, new_order["id"])
-                    logger.success(order_name, f"-> {new_order['id']}")
+                order_id = new_order["id"] if new_order else None
 
-                    fulfillments = order.get("fulfillments", [])
-                    if fulfillments:
+                if not order_id and access_denied:
+                    logger.error(order_name, "ACCESS_DENIED", "Order may have been created but response blocked by scope error")
+                    continue
+
+                state.mark_done(old_id, order_id)
+                logger.success(order_name, f"-> {order_id}")
+
+                fulfillments = order.get("fulfillments", [])
+                if fulfillments and order_id:
+                    try:
+                        fo_result = await client.execute(GET_FULFILLMENT_ORDERS, {"orderId": order_id})
+                        fo_data = (fo_result.get("data") or {}).get("order") or {}
+                        fo_edges = (fo_data.get("fulfillmentOrders") or {}).get("edges", [])
+                    except Exception:
+                        fo_edges = []
+                        console.print(f"  [yellow]{order_name}: Could not fetch fulfillmentOrders (missing scope?)[/yellow]")
+
+                    for ful in fulfillments:
+                        tracking = ful.get("trackingInfo", [])
+                        if not fo_edges:
+                            continue
+
+                        fo_line_items = []
+                        for fo_edge in fo_edges:
+                            fo_node = fo_edge["node"]
+                            for li_edge in (fo_node.get("lineItems") or {}).get("edges", []):
+                                li_node = li_edge["node"]
+                                if li_node.get("remainingQuantity", 0) > 0:
+                                    fo_line_items.append({
+                                        "fulfillmentOrderId": fo_node["id"],
+                                        "fulfillmentOrderLineItems": [
+                                            {"id": li_node["id"], "quantity": li_node["remainingQuantity"]}
+                                        ],
+                                    })
+
+                        if not fo_line_items:
+                            continue
+
+                        ful_input = {"lineItemsByFulfillmentOrder": fo_line_items}
+
+                        if tracking:
+                            t = tracking[0] if isinstance(tracking, list) else tracking
+                            tracking_input = {}
+                            if t.get("number"):
+                                tracking_input["number"] = t["number"]
+                            if t.get("company"):
+                                tracking_input["company"] = t["company"]
+                            if t.get("url"):
+                                tracking_input["url"] = t["url"]
+                            if tracking_input:
+                                ful_input["trackingInfo"] = tracking_input
+
                         try:
-                            fo_result = await client.execute(GET_FULFILLMENT_ORDERS, {"orderId": new_order["id"]})
-                            fo_data = (fo_result.get("data") or {}).get("order") or {}
-                            fo_edges = (fo_data.get("fulfillmentOrders") or {}).get("edges", [])
-                        except Exception:
-                            fo_edges = []
-                        for ful in fulfillments:
-                            tracking = ful.get("trackingInfo", [])
-                            if not fo_edges:
-                                continue
-
-                            fo_line_items = []
-                            for fo_edge in fo_edges:
-                                fo_node = fo_edge["node"]
-                                for li_edge in (fo_node.get("lineItems") or {}).get("edges", []):
-                                    li_node = li_edge["node"]
-                                    if li_node.get("remainingQuantity", 0) > 0:
-                                        fo_line_items.append({
-                                            "fulfillmentOrderId": fo_node["id"],
-                                            "fulfillmentOrderLineItems": [
-                                                {"id": li_node["id"], "quantity": li_node["remainingQuantity"]}
-                                            ],
-                                        })
-
-                            if not fo_line_items:
-                                continue
-
-                            ful_input = {"lineItemsByFulfillmentOrder": fo_line_items}
-
-                            if tracking:
-                                t = tracking[0] if isinstance(tracking, list) else tracking
-                                tracking_input = {}
-                                if t.get("number"):
-                                    tracking_input["number"] = t["number"]
-                                if t.get("company"):
-                                    tracking_input["company"] = t["company"]
-                                if t.get("url"):
-                                    tracking_input["url"] = t["url"]
-                                if tracking_input:
-                                    ful_input["trackingInfo"] = tracking_input
-
-                            try:
-                                ful_result = await client.execute(FULFILLMENT_CREATE, {"fulfillment": ful_input})
-                                ful_mut = (ful_result.get("data") or {}).get("fulfillmentCreateV2") or {}
-                                ful_errors = ful_mut.get("userErrors", [])
-                                if ful_errors:
-                                    console.print(f"  [yellow]Fulfillment error for {order_name}: {ful_errors}[/yellow]")
-                                else:
-                                    console.print(f"  [green]Fulfillment + tracking created for {order_name}[/green]")
-                            except Exception as fe:
-                                console.print(f"  [yellow]Fulfillment failed for {order_name}: {fe}[/yellow]")
-                else:
-                    logger.error(order_name, "NO_DATA", str(result)[:300])
+                            ful_result = await client.execute(FULFILLMENT_CREATE, {"fulfillment": ful_input})
+                            ful_mut = (ful_result.get("data") or {}).get("fulfillmentCreateV2") or {}
+                            ful_errors = ful_mut.get("userErrors", [])
+                            if ful_errors:
+                                console.print(f"  [yellow]Fulfillment error for {order_name}: {ful_errors}[/yellow]")
+                            else:
+                                console.print(f"  [green]Fulfillment + tracking created for {order_name}[/green]")
+                        except Exception as fe:
+                            console.print(f"  [yellow]Fulfillment failed for {order_name}: {fe}[/yellow]")
         except Exception as e:
             logger.error(order_name, "EXCEPTION", str(e))
 
