@@ -201,6 +201,9 @@ query($orderId: ID!) {
       edges {
         node {
           id
+          status
+          requestStatus
+          assignedLocation { name }
           lineItems(first: 100) {
             edges { node { id remainingQuantity } }
           }
@@ -460,25 +463,34 @@ async def upload_orders(client, limit=None):
                         fo_edges = []
                         console.print(f"  [yellow]{order_name}: Could not fetch fulfillmentOrders (missing scope?)[/yellow]")
 
+                    for fo_edge in fo_edges:
+                        fo_n = fo_edge["node"]
+                        loc = (fo_n.get("assignedLocation") or {}).get("name", "?")
+                        console.print(f"  [dim]{order_name}: FO status={fo_n.get('status')} request={fo_n.get('requestStatus')} location={loc}[/dim]")
+
                     for ful in fulfillments:
                         tracking = ful.get("trackingInfo", [])
                         if not fo_edges:
+                            console.print(f"  [yellow]{order_name}: No fulfillment orders found[/yellow]")
                             continue
 
                         fo_line_items = []
                         for fo_edge in fo_edges:
                             fo_node = fo_edge["node"]
+                            fo_status = fo_node.get("status", "")
                             for li_edge in (fo_node.get("lineItems") or {}).get("edges", []):
                                 li_node = li_edge["node"]
-                                if li_node.get("remainingQuantity", 0) > 0:
+                                remaining = li_node.get("remainingQuantity", 0)
+                                if remaining > 0:
                                     fo_line_items.append({
                                         "fulfillmentOrderId": fo_node["id"],
                                         "fulfillmentOrderLineItems": [
-                                            {"id": li_node["id"], "quantity": li_node["remainingQuantity"]}
+                                            {"id": li_node["id"], "quantity": remaining}
                                         ],
                                     })
 
                         if not fo_line_items:
+                            console.print(f"  [yellow]{order_name}: All items have remainingQuantity=0 (fulfillment may not be needed)[/yellow]")
                             continue
 
                         tracking_input = {}
