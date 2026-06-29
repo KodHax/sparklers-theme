@@ -477,6 +477,16 @@ async def upload_products(client: GraphQLClient, limit: int | None = 50):
                         for opt in v.get("selectedOptions", [])
                     ],
                 }
+                if v.get("weight") is not None:
+                    unit = (v.get("weightUnit") or "KILOGRAMS").upper()
+                    var_input["inventoryItem"] = {
+                        "measurement": {
+                            "weight": {
+                                "value": float(v["weight"]),
+                                "unit": unit,
+                            }
+                        }
+                    }
                 product_input["variants"].append(var_input)
 
         if product.get("metafields"):
