@@ -27,7 +27,7 @@ console = Console()
 
 ORDERS_QUERY = """
 query getOrders($first: Int!, $cursor: String) {
-  orders(first: $first, after: $cursor, sortKey: CREATED_AT) {
+  orders(first: $first, after: $cursor, sortKey: CREATED_AT, query: "status:any") {
     pageInfo { hasNextPage endCursor }
     edges {
       node {
