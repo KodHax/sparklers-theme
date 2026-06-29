@@ -475,19 +475,23 @@ async def upload_orders(client, limit=None):
                             continue
 
                         fo_line_items = []
+                        fo_grouped = {}
                         for fo_edge in fo_edges:
                             fo_node = fo_edge["node"]
-                            fo_status = fo_node.get("status", "")
                             for li_edge in (fo_node.get("lineItems") or {}).get("edges", []):
                                 li_node = li_edge["node"]
                                 remaining = li_node.get("remainingQuantity", 0)
                                 if remaining > 0:
-                                    fo_line_items.append({
-                                        "fulfillmentOrderId": fo_node["id"],
-                                        "fulfillmentOrderLineItems": [
-                                            {"id": li_node["id"], "quantity": remaining}
-                                        ],
-                                    })
+                                    if fo_node["id"] not in fo_grouped:
+                                        fo_grouped[fo_node["id"]] = []
+                                    fo_grouped[fo_node["id"]].append(
+                                        {"id": li_node["id"], "quantity": remaining}
+                                    )
+                        for fo_id, items in fo_grouped.items():
+                            fo_line_items.append({
+                                "fulfillmentOrderId": fo_id,
+                                "fulfillmentOrderLineItems": items,
+                            })
 
                         if not fo_line_items:
                             console.print(f"  [yellow]{order_name}: All items have remainingQuantity=0 (fulfillment may not be needed)[/yellow]")
