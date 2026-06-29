@@ -53,6 +53,14 @@ mutation($input: CollectionInput!) {
 }
 """
 
+FIND_COLLECTION_BY_HANDLE = """
+query($query: String!) {
+  collections(first: 1, query: $query) {
+    edges { node { id handle } }
+  }
+}
+"""
+
 CREATE_PRODUCT = """
 mutation productSet($input: ProductSetInput!) {
   productSet(input: $input) {
@@ -401,7 +409,16 @@ async def create_collections(client: GraphQLClient, limit: int | None = None):
             mutation_result = data.get("collectionCreate") or {}
             errors = mutation_result.get("userErrors", [])
             if errors:
-                logger.error(old_id, "USER_ERROR", "; ".join(e["message"] for e in errors))
+                # Collection may already exist — look it up by handle
+                handle = coll.get("handle", "")
+                lookup = await client.execute(FIND_COLLECTION_BY_HANDLE, {"query": f"handle:{handle}"})
+                edges = ((lookup.get("data") or {}).get("collections") or {}).get("edges", [])
+                if edges:
+                    existing_id = edges[0]["node"]["id"]
+                    state.mark_done(old_id, existing_id)
+                    logger.success(old_id, f"already exists -> {existing_id}")
+                else:
+                    logger.error(old_id, "USER_ERROR", "; ".join(e["message"] for e in errors))
             else:
                 new_coll = mutation_result.get("collection")
                 if new_coll:
