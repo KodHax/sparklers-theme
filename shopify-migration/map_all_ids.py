@@ -66,17 +66,38 @@ ALL_VIDS = [
     "56223877824889", "55978829971833", "55978804216185", "56030781145465",
 ]
 
+# Variant picker - fast_pids_all
+FAST_PIDS = [
+    "15833515721048", "15833581977944", "15833515983192", "15833518604632",
+    "15833631424856", "15833515295064", "15833602589016", "15833517916504",
+    "15833518539096", "15833517654360", "15833602556248", "15833516999000",
+    "15833517621592", "15833602064728", "15833518834008", "15833516966232",
+    "15833515557208", "15833518899544", "15833515917656", "15833518670168",
+    "15833517457752", "15833518801240", "15833518768472", "15833516802392",
+    "15833630146904", "15833614680408", "15833516147032", "15833516343640",
+    "15833516114264", "15833515524440", "15833518637400", "15833516081496",
+    "15833518244184",
+]
+
+# Variant picker - fast_vids
+FAST_VIDS = [
+    "57575785169240", "57575737983320", "57575808893272", "57575923548504",
+    "57575799914840", "57575641710936", "57575968604504", "57575968637272",
+    "57575801717080", "57575635386712", "57576658239832", "57576658272600",
+    "57575628538200", "57575801127256", "57575913718104", "57576227635544",
+]
+
 # Remove duplicates preserving order
 seen_p = set()
 UNIQUE_PIDS = []
-for p in ALL_PIDS:
+for p in ALL_PIDS + FAST_PIDS:
     if p not in seen_p:
         seen_p.add(p)
         UNIQUE_PIDS.append(p)
 
 seen_v = set()
 UNIQUE_VIDS = []
-for v in ALL_VIDS:
+for v in ALL_VIDS + FAST_VIDS:
     if v not in seen_v:
         seen_v.add(v)
         UNIQUE_VIDS.append(v)
@@ -220,6 +241,17 @@ async def run():
         else:
             print(f"    {{ pid: {new_pid}, vid: null }},")
     print("  ];")
+
+    print("\n\n=== VARIANT PICKER (fast_pids_all / fast_vids) ===\n")
+    new_fast_pids = [pid_map.get(p, "???") for p in FAST_PIDS]
+    new_fast_vids = [vid_map.get(v, "???") for v in FAST_VIDS]
+    print("  Liquid (assign):")
+    print(f'  assign fast_pids_all = "{",".join(new_fast_pids)}" | split: ","')
+    print(f'  assign fast_vids = "{",".join(new_fast_vids)}" | split: ","')
+    print()
+    print("  HTML (data attributes):")
+    print(f'  data-fast-pids="{",".join(new_fast_pids)}"')
+    print(f'  data-fast-vids="{",".join(new_fast_vids)}"')
 
 
 asyncio.run(run())
