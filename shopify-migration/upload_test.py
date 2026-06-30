@@ -580,6 +580,15 @@ async def associate_collections(client: GraphQLClient, limit: int | None = 50):
     collection_state = StateManager("dest_collections")
     logger = MigrationLogger("upload_collection_assoc")
 
+    # Build handle -> new_id map from collections data
+    collections_data = _load("mapa_colecoes.json")
+    handle_to_new_coll_id = {}
+    for coll in collections_data:
+        old_id = coll["id"]
+        new_id = collection_state.get_new_id(old_id)
+        if new_id and coll.get("handle"):
+            handle_to_new_coll_id[coll["handle"]] = new_id
+
     collection_products: dict[str, list[str]] = {}
     for product in products:
         handle = product.get("handle", "")
@@ -588,7 +597,7 @@ async def associate_collections(client: GraphQLClient, limit: int | None = 50):
             continue
 
         for coll_handle in product.get("colecoes_alvo", []):
-            new_coll_id = collection_state.get_new_id(f"handle:{coll_handle}")
+            new_coll_id = handle_to_new_coll_id.get(coll_handle)
             if new_coll_id:
                 collection_products.setdefault(new_coll_id, []).append(new_pid)
 
