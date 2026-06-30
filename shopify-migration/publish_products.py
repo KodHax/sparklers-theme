@@ -132,10 +132,12 @@ async def run():
                 user_errors = mut.get("userErrors", [])
                 if user_errors:
                     errors += 1
+                    console.print(f"  [red]{p['handle']}: {user_errors[0]['message']}[/red]")
                 else:
                     published += 1
             except Exception as e:
                 errors += 1
+                console.print(f"  [red]{p['handle']}: {e}[/red]")
 
             if (published + errors) % 100 == 0 and (published + errors) > 0:
                 console.print(f"  Progress: {published + errors}/{len(products)}")
