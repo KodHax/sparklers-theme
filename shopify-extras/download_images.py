@@ -67,11 +67,9 @@ query($first: Int!, $cursor: String) {
       node {
         ... on MediaImage {
           image { url }
-          originalFileSize
         }
         ... on GenericFile {
           url
-          originalFileSize
         }
       }
     }
