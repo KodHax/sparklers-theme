@@ -425,7 +425,7 @@ async def upload_orders(client, limit=None):
                     tx_input["processedAt"] = tx["processedAt"]
                 order_input["transactions"].append(tx_input)
 
-        await asyncio.sleep(0.6)
+        await asyncio.sleep(12)
         try:
             result = await client.execute(ORDER_CREATE, {
                 "order": order_input,
